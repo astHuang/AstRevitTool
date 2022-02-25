@@ -1,0 +1,10 @@
+﻿<RevitAddIns>
+    <AddIn Type="Application">
+        <Name>AstRevitTool</Name>
+        <Assembly>AstRevitTool/AstRevitTool.dll</Assembly>
+        <AddInId>322DC12F-A9E4-4019-89F1-275684CB2AD6</AddInId>
+        <FullClassName>AstRevitTool.Application</FullClassName>
+        <VendorId>CompanyName</VendorId>
+        <VendorDescription>Description</VendorDescription>
+    </AddIn>
+</RevitAddIns>

@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "AstRevitTool": {
+      "commandName": "Project",
+      "commandLineArgs": "C:\\Program Files\\Autodesk\\Revit 2022\\Revit.exe"
+    },
+    "Profile 1": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Program Files\\Autodesk\\Revit 2022\\Revit.exe"
+    }
+  }
+}

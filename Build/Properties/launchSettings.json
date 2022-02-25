@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "Build": {
+      "commandName": "Project"
+    },
+    "Revit22": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Program Files\\Autodesk\\Revit 2022\\Revit.exe"
+    }
+  }
+}
