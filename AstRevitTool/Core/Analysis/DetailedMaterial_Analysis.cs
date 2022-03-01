@@ -15,8 +15,9 @@ namespace AstRevitTool.Core.Analysis
             this.SortByFamily = false;
             this.SortByType = false;
             this.AnalyzingVolume = false;
+            this.SortByCategory = false;
         }
-
+        public bool SortByCategory { get; set; }
         public bool SortByFamily { get; set; }
         public bool SortByType { get; set; }
 
@@ -104,6 +105,11 @@ namespace AstRevitTool.Core.Analysis
             option.ComputeReferences = true;
             GeometryElement geoEl = el.get_Geometry(option);
             string MatNameExtra = "";
+            if(this.SortByCategory == true)
+            {
+                string CName = el.Category?.Name;
+                MatNameExtra += CName;
+            }
             if(this.SortByFamily == true)
             {
                 ElementId typeId = el.GetTypeId();
@@ -117,16 +123,16 @@ namespace AstRevitTool.Core.Analysis
                     {
                         if(this.SortByType == true)
                         {
-                            MatNameExtra = FName + " :: " + TName;
+                            MatNameExtra += FName + " :: " + TName;
                         }
                         else
                         {
-                            MatNameExtra = FName;
+                            MatNameExtra += FName;
                         }
                     }
                     else
                     {
-                        MatNameExtra = TName;
+                        MatNameExtra += TName;
                     }
                 }
             }

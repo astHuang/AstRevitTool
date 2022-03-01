@@ -316,7 +316,11 @@ namespace AstRevitTool.Commands
                     MessageBox.Show("You must be in 3D view to export.");
 
                 DetailedMaterial_Analysis analysis = new DetailedMaterial_Analysis(context, app);
-
+                DialogResult byCategory = MessageBox.Show("Do you want material to be sorted by Category?", "Category Sorting", MessageBoxButtons.YesNo);
+                if(byCategory == DialogResult.Yes)
+                {
+                    analysis.SortByCategory = true;
+                }
                 DialogResult dialogResult = MessageBox.Show("Do you want material to be sorted by Family?", "Family Sorting", MessageBoxButtons.YesNo);
                 if (dialogResult == DialogResult.Yes)
                 {
