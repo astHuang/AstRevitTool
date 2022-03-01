@@ -4,7 +4,7 @@
         <Assembly>AstRevitTool/AstRevitTool.dll</Assembly>
         <AddInId>322DC12F-A9E4-4019-89F1-275684CB2AD6</AddInId>
         <FullClassName>AstRevitTool.Application</FullClassName>
-        <VendorId>CompanyName</VendorId>
-        <VendorDescription>Description</VendorDescription>
+        <VendorId>Arrowstreet Inc</VendorId>
+        <VendorDescription>Zhenxiang Huang, huang@arrowstreet.com</VendorDescription>
     </AddIn>
 </RevitAddIns>

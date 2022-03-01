@@ -1,5 +1,6 @@
 ﻿using AstRevitTool.Commands;
 using Autodesk.Revit.UI;
+using AutoUpdaterDotNET;
 
 namespace AstRevitTool
 {
@@ -40,6 +41,7 @@ namespace AstRevitTool
             optionsBtn.AddPushButton(typeof(CmdAssembly), "Assembly Types");
             optionsBtn.AddPushButton(typeof(CmdAssemblyMaterial), "Assembly Material Decomposition");
             optionsBtn.AddPushButton(typeof(CmdMatCalc), "Detailed Material Analysis");
+            optionsBtn.AddPushButton(typeof(CmdUpdater), "Check Latest Update");
             //optionsBtn.AddPushButton(new PushButtonData("Table Display", "Testing UI Form...", ExecutingAssemblyPath, "AST_Revit_Toolkit.CmdUIDisplay"));
         }
     }

@@ -15,6 +15,10 @@ using System.IO;
 using AstRevitTool.Core.Analysis;
 using AstRevitTool.Core.Export;
 using AstRevitTool.Core;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Net;
+
 
 namespace AstRevitTool.Commands
 {
@@ -317,7 +321,7 @@ namespace AstRevitTool.Commands
 
                 DetailedMaterial_Analysis analysis = new DetailedMaterial_Analysis(context, app);
                 DialogResult byCategory = MessageBox.Show("Do you want material to be sorted by Category?", "Category Sorting", MessageBoxButtons.YesNo);
-                if(byCategory == DialogResult.Yes)
+                if (byCategory == DialogResult.Yes)
                 {
                     analysis.SortByCategory = true;
                 }
@@ -352,5 +356,109 @@ namespace AstRevitTool.Commands
             return rc;
         }
 
+    }
+
+
+
+    [Transaction(TransactionMode.Manual)]
+    public class CmdUpdater : IExternalCommand
+    {
+        public Result Execute(
+          ExternalCommandData commandData,
+          ref string message,
+          ElementSet elements)
+        {
+            string version = Assembly.GetCallingAssembly().GetName().Version.ToString();
+            string latest = LatestVersion.ToString();
+            if (!HasUpdate)
+            {
+                TaskDialog.Show("Update check", "This is the latest version! Version: "+ version);
+            }
+            else
+            {
+                TaskDialog.Show("Update check", "This tool can be updated!Current version is: "+ version+  "\r\n The latest version is: "+latest + "\r\n Opening download link...");
+                string url = string.Concat("https://github.com", GitHubRepo, "/releases/latest");
+                Process.Start(url);
+            }
+            return Result.Succeeded;
+        }
+        static readonly Lazy<IDictionary<Version, Uri>> _lazyVersionUrls = new Lazy<IDictionary<Version, Uri>>(() => _GetVersionUrls());
+        public static string GitHubRepo = "astHuang/AstRevitTool";
+        public static string GitHubRepoName
+        {
+            get
+            {
+                var si = GitHubRepo.LastIndexOf('/');
+                return GitHubRepo.Substring(si + 1);
+            }
+        }
+        static IDictionary<Version, Uri> _VersionUrls
+        {
+            get
+            {
+                return _lazyVersionUrls.Value;
+            }
+        }
+        public static Version LatestVersion
+        {
+            get
+            {
+                var v = Assembly.GetCallingAssembly().GetName().Version;
+                var va = new List<Version>(_VersionUrls.Keys);
+                va.Add(v);
+                va.Sort();
+                return va[va.Count - 1];
+            }
+        }
+        public static bool HasUpdate
+        {
+            get
+            {
+                var v = Assembly.GetCallingAssembly().GetName().Version;
+                foreach (var e in _VersionUrls)
+                    if (e.Key>v)
+                        return true;
+                return false;
+            }
+        }
+        static IDictionary<Version, Uri> _GetVersionUrls()
+        {
+
+            string pattern =
+                    string.Concat(
+                        Regex.Escape(GitHubRepo),
+                        @"\/releases\/download\/Refresh.v[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+.*\.zip");
+
+            Regex urlMatcher = new Regex(pattern, RegexOptions.CultureInvariant | RegexOptions.Compiled);
+            var result = new Dictionary<Version, Uri>();
+            WebRequest wrq = WebRequest.Create(string.Concat("https://github.com", GitHubRepo, "/releases/latest"));
+            WebResponse wrs = null;
+            try
+            {
+                wrs = wrq.GetResponse();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error fetching repo: "+ex.Message);
+                return result;
+            }
+            using (var sr = new StreamReader(wrs.GetResponseStream()))
+            {
+                string line;
+                while (null != (line = sr.ReadLine()))
+                {
+                    var match = urlMatcher.Match(line);
+                    if (match.Success)
+                    {
+                        var uri = new Uri(string.Concat("https://github.com", match.Value));
+                        var vs = match.Value.LastIndexOf("/Refresh.v");
+                        var sa = match.Value.Substring(vs+10).Split('.', '/');
+                        var v = new Version(int.Parse(sa[0]), int.Parse(sa[1]), int.Parse(sa[2]), int.Parse(sa[3]));
+                        result.Add(v, uri);
+                    }
+                }
+            }
+            return result;
+        }
     }
 }
