@@ -6,8 +6,8 @@ namespace AstRevitTool
     [UsedImplicitly]
     public class Application : IExternalApplication
     {
-        private const string RibbonImageUri = "/AstRevitTool;component/Resources/Icons/RibbonIcon16.png";
-        private const string RibbonLargeImageUri = "/AstRevitTool;component/Resources/Icons/RibbonIcon32.png";
+        private const string RibbonImageUri = "/AstRevitTool;component/Resources/Icons/icon-16.png";
+        private const string RibbonLargeImageUri = "/AstRevitTool;component/Resources/Icons/icon-32.png";
 
         public Result OnStartup(UIControlledApplication application)
         {
@@ -36,7 +36,7 @@ namespace AstRevitTool
             optionsBtn.AddPushButton(typeof(CmdWWRCalc), "Window-to-wall Ratio Calculation");
             optionsBtn.AddPushButton(typeof(CmdWallMat), "Wall Material Take-off");
             //optionsBtn.AddPushButton(new PushButtonData("Wall Types", "Summarize Facade by Types", ExecutingAssemblyPath, "AST_Revit_Toolkit.CmdWallType"));
-            optionsBtn.AddPushButton(typeof(CmdWallFamily), "Facade Family Types");
+            optionsBtn.AddPushButton(typeof(CmdWallFamily), "Facade Family Take-off");
             optionsBtn.AddPushButton(typeof(CmdAssembly), "Assembly Types");
             optionsBtn.AddPushButton(typeof(CmdAssemblyMaterial), "Assembly Material Decomposition");
             optionsBtn.AddPushButton(typeof(CmdMatCalc), "Detailed Material Analysis");

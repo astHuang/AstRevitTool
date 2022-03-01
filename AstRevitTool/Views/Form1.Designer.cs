@@ -35,6 +35,7 @@ namespace AstRevitTool.Views
 
         protected void CommonInit(IAnalysis analysis, Document doc)
         {
+            
             this.maindoc = doc;
             this.my_analysis = analysis;
             this.Text = analysis.Type() + " @" + doc.Title;
@@ -113,8 +114,8 @@ namespace AstRevitTool.Views
             // 
             // m_lvData
             // 
-            this.m_lvData.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
-            | System.Windows.Forms.AnchorStyles.Left)
+            this.m_lvData.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.m_lvData.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.m_lvCol_label,
@@ -192,7 +193,6 @@ namespace AstRevitTool.Views
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.m_bnOK);
-            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Form1";
             this.Text = "Form1";
             this.ResumeLayout(false);
