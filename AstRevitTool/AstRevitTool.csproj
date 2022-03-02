@@ -35,7 +35,7 @@
         <DefineConstants>$(DefineConstants);R22</DefineConstants>
     </PropertyGroup>
     <PropertyGroup>
-        <Version>$(RevitVersion)</Version>
+        <Version>1.0.3.0</Version>
         <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     </PropertyGroup>

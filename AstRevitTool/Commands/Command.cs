@@ -368,7 +368,7 @@ namespace AstRevitTool.Commands
           ref string message,
           ElementSet elements)
         {
-            string version = Assembly.GetCallingAssembly().GetName().Version.ToString();
+            string version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
             string latest = LatestVersion.ToString();
             if (!HasUpdate)
             {
@@ -403,7 +403,7 @@ namespace AstRevitTool.Commands
         {
             get
             {
-                var v = Assembly.GetCallingAssembly().GetName().Version;
+                var v = Assembly.GetExecutingAssembly().GetName().Version;
                 var va = new List<Version>(_VersionUrls.Keys);
                 va.Add(v);
                 va.Sort();
@@ -414,7 +414,7 @@ namespace AstRevitTool.Commands
         {
             get
             {
-                var v = Assembly.GetCallingAssembly().GetName().Version;
+                var v = Assembly.GetExecutingAssembly().GetName().Version;
                 foreach (var e in _VersionUrls)
                     if (e.Key>v)
                         return true;
