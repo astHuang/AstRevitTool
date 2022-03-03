@@ -1,4 +1,4 @@
-# AstRevitTool
+# AST Revit 
 
 Installation:
  - Double click the .msi file and the package will be installed in your Revit 2020 & 2022
