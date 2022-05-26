@@ -38,5 +38,9 @@ namespace AstRevitTool.Core.Analysis
         string Conclusion();
 
         Dictionary<string, double> ResultList();
+
+        List<FilteredInfo> InfoList();
+
+        ICollection<Element> AllAnalyzedElement();
     }
 }

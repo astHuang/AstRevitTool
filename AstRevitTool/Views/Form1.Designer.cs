@@ -19,7 +19,22 @@ namespace AstRevitTool.Views
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
-
+        class ListViewItemComparer : IComparer
+        {
+            private int col;
+            public ListViewItemComparer()
+            {
+                col = 0;
+            }
+            public ListViewItemComparer(int column)
+            {
+                col = column;
+            }
+            public int Compare(object x, object y)
+            {
+                return String.Compare(((ListViewItem)x).SubItems[col].Text, ((ListViewItem)y).SubItems[col].Text);
+            }
+        }
         /// <summary>
         /// Clean up any resources being used.
         /// </summary>
@@ -44,20 +59,42 @@ namespace AstRevitTool.Views
             string title = "Arrowstreet Revit Project Report" + "\nAnalyze time: " + time;
             this.label2.Text = title + "\nAnalyze view: " + doc.ActiveView.Name;
             m_lvData.Items.Clear();
+            //this.m_lvData.ListViewItemSorter = new ListViewItemComparer();
+
             foreach (KeyValuePair<string, double> entry in analysis.ResultList())
             {
-                string number = entry.Value.ToString("0.##");
-                var row = new string[] { entry.Key, number };
-                var lvi = new ListViewItem(row);
-                lvi.Tag = entry;
-                m_lvData.Items.Add(lvi);
+                if(entry.Value > 0) {
+                    string number = entry.Value.ToString("0.##");
+                    var row = new string[] { entry.Key, number };
+                    var lvi = new ListViewItem(row);
+                    //lvi.Tag = entry;
+                    var rowinfo = FilteredInfo.matchInfoFromList(this.my_analysis.InfoList(), entry.Key);
+                    if(rowinfo != null)
+                    {
+                        lvi.Tag = rowinfo.FilteredElements;
+                    }
+                    else
+                    {
+                        lvi.Tag = new List<Element>();
+                    }
+                    m_lvData.Items.Add(lvi);
+                    m_lvData.BackColor = System.Drawing.Color.White;
+                }
+                
             }
 
+            if(analysis is DetailedMaterial_Analysis)
+            {
+                this.m_lvData.ListViewItemSorter = new ListViewItemComparer(1);
+                m_lvData.Sort();
+            }
+
+            
             this.label3.Text = analysis.Conclusion();
             this.label3.AutoSize = true;
 
-            string path = Core.Export.ASTExportUtils.filepath(doc, analysis, ".txt");
-            this.label4.Text = "Document file is saved! File location: " + path;
+            //string path = Core.Export.ASTExportUtils.filepath(doc, analysis, ".txt");
+            //this.label4.Text = "Document file is saved! File location: " + path;
         }
 
 
@@ -69,7 +106,6 @@ namespace AstRevitTool.Views
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.m_bnOK = new System.Windows.Forms.Button();
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
@@ -80,15 +116,18 @@ namespace AstRevitTool.Views
             this.label4 = new System.Windows.Forms.Label();
             this.button2 = new System.Windows.Forms.Button();
             this.button1 = new System.Windows.Forms.Button();
+            this.button3 = new System.Windows.Forms.Button();
+            this.button4 = new System.Windows.Forms.Button();
+            this.button5 = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // m_bnOK
             // 
             this.m_bnOK.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.m_bnOK.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.m_bnOK.Location = new System.Drawing.Point(14, 458);
+            this.m_bnOK.Location = new System.Drawing.Point(16, 573);
             this.m_bnOK.Name = "m_bnOK";
-            this.m_bnOK.Size = new System.Drawing.Size(90, 27);
+            this.m_bnOK.Size = new System.Drawing.Size(124, 27);
             this.m_bnOK.TabIndex = 3;
             this.m_bnOK.Text = "OK";
             // 
@@ -126,15 +165,16 @@ namespace AstRevitTool.Views
             this.m_lvData.Location = new System.Drawing.Point(325, 14);
             this.m_lvData.Name = "m_lvData";
             this.m_lvData.ShowItemToolTips = true;
-            this.m_lvData.Size = new System.Drawing.Size(450, 471);
+            this.m_lvData.Size = new System.Drawing.Size(450, 591);
             this.m_lvData.TabIndex = 6;
             this.m_lvData.UseCompatibleStateImageBehavior = false;
             this.m_lvData.View = System.Windows.Forms.View.Details;
+            this.m_lvData.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.m_lvData_SelectedIndexChanged);
             // 
             // m_lvCol_label
             // 
             this.m_lvCol_label.Text = "Item";
-            this.m_lvCol_label.Width = 346;
+            this.m_lvCol_label.Width = 344;
             // 
             // m_lvCol_value
             // 
@@ -153,15 +193,15 @@ namespace AstRevitTool.Views
             // 
             this.label4.AutoEllipsis = true;
             this.label4.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label4.Location = new System.Drawing.Point(14, 374);
+            this.label4.Location = new System.Drawing.Point(14, 449);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(288, 81);
+            this.label4.Size = new System.Drawing.Size(288, 55);
             this.label4.TabIndex = 8;
-            this.label4.Text = "label4";
+            this.label4.Text = "     ";
             // 
             // button2
             // 
-            this.button2.Location = new System.Drawing.Point(163, 458);
+            this.button2.Location = new System.Drawing.Point(165, 573);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(137, 27);
             this.button2.TabIndex = 10;
@@ -171,7 +211,7 @@ namespace AstRevitTool.Views
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(12, 335);
+            this.button1.Location = new System.Drawing.Point(16, 527);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(124, 27);
             this.button1.TabIndex = 11;
@@ -179,12 +219,45 @@ namespace AstRevitTool.Views
             this.button1.UseVisualStyleBackColor = true;
             this.button1.Click += new System.EventHandler(this.button1_Click);
             // 
+            // button3
+            // 
+            this.button3.Location = new System.Drawing.Point(165, 527);
+            this.button3.Name = "button3";
+            this.button3.Size = new System.Drawing.Size(137, 27);
+            this.button3.TabIndex = 12;
+            this.button3.Text = "Save as txt...";
+            this.button3.UseVisualStyleBackColor = true;
+            this.button3.Click += new System.EventHandler(this.button3_Click);
+            // 
+            // button4
+            // 
+            this.button4.Location = new System.Drawing.Point(16, 193);
+            this.button4.Name = "button4";
+            this.button4.Size = new System.Drawing.Size(180, 31);
+            this.button4.TabIndex = 13;
+            this.button4.Text = "Color Elements in Selection";
+            this.button4.UseVisualStyleBackColor = true;
+            this.button4.Click += new System.EventHandler(this.button4_Click);
+            // 
+            // button5
+            // 
+            this.button5.Location = new System.Drawing.Point(217, 193);
+            this.button5.Name = "button5";
+            this.button5.Size = new System.Drawing.Size(85, 31);
+            this.button5.TabIndex = 14;
+            this.button5.Text = "Clear Color";
+            this.button5.UseVisualStyleBackColor = true;
+            this.button5.Click += new System.EventHandler(this.button5_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.HighlightText;
-            this.ClientSize = new System.Drawing.Size(800, 497);
+            this.ClientSize = new System.Drawing.Size(800, 617);
+            this.Controls.Add(this.button5);
+            this.Controls.Add(this.button4);
+            this.Controls.Add(this.button3);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.button2);
             this.Controls.Add(this.label4);
@@ -213,5 +286,8 @@ namespace AstRevitTool.Views
         private Button button1;
         private Document maindoc;
         private IAnalysis my_analysis;
+        private Button button3;
+        private Button button4;
+        private Button button5;
     }
 }

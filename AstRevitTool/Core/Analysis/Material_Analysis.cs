@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Autodesk.Revit.DB;
 using System.Windows.Forms;
+using AstRevitTool.Core.Analysis;
 
 namespace AstRevitTool.Core.Analysis
 {
@@ -32,58 +33,66 @@ namespace AstRevitTool.Core.Analysis
             List<Tuple<Element,string>> error = new List<Tuple<Element,string>>();
             foreach (Element wall in this.AnalyzedElements["Basic Walls"])
             {
-                Document doc = wall.Document;
-                this.TotalWallArea += wall.LookupParameter("Area").AsDouble();
-                ElementId typeId = wall.GetTypeId();
-                WallType wtype = doc.GetElement(typeId) as WallType;
-                string TName = wtype?.Name;
-                string TMark = wtype?.get_Parameter(BuiltInParameter.ALL_MODEL_TYPE_MARK).AsString();
-                if (this.byType == true ||this.byFamily == true)
+                if (AnalysisUtils.WallEligable(wall))
                 {
                     try
                     {
-                        string fullname = TMark + " : " + TName;
-                        double area = wall.LookupParameter("Area").AsDouble();
-                        this.WallMaterialArea += area;
-                        if (Metrics.Keys.Contains(fullname))
+                        Document doc = wall.Document;
+                        this.TotalWallArea += AnalysisUtils.ElementArea(wall);
+                        ElementId typeId = wall.GetTypeId();
+                        WallType wtype = doc.GetElement(typeId) as WallType;
+                        string TName = wtype?.Name;
+                        string TMark = wtype?.get_Parameter(BuiltInParameter.ALL_MODEL_TYPE_MARK).AsString();
+                        if (this.byType == true ||this.byFamily == true)
                         {
-                            Metrics[fullname] += area;
-                        }
-                        else
-                        {
-                            Metrics.Add(fullname, area);
-                        }
+                            try
+                            {
+                                string fullname = TMark + " : " + TName;
+                                double area = AnalysisUtils.ElementArea(wall);
+                                this.WallMaterialArea += area;
+                                if (Metrics.Keys.Contains(fullname))
+                                {
+                                    Metrics[fullname] += area;
+                                }
+                                else
+                                {
+                                    Metrics.Add(fullname, area);
+                                }
 
-                    }
-                    catch
-                    {
-                        error.Add(new Tuple<Element, string>(wall, TName));
-                        continue;
-                    }
-                }
-                else {
-                    try
-                    {
-                        ElementId matId = wtype.GetCompoundStructure().GetLayers()[0].MaterialId;
-                        string matName = doc.GetElement(matId)?.Name;
-                        double area = wall.LookupParameter("Area").AsDouble();
-                        this.WallMaterialArea += area;
-                        if (Metrics.Keys.Contains(matName))
-                        {
-                            Metrics[matName] += area;
+                            }
+                            catch
+                            {
+                                if (AnalysisUtils.ElementArea(wall)>0) { error.Add(new Tuple<Element, string>(wall, TName)); }
+                                continue;
+                            }
                         }
                         else
                         {
-                            Metrics.Add(matName, area);
+                            double area = AnalysisUtils.ElementArea(wall);
+                            try
+                            {
+                                ElementId matId = wtype.GetCompoundStructure().GetLayers()[0].MaterialId;
+                                string matName = doc.GetElement(matId)?.Name;
+                                //double area = wall.LookupParameter("Area").AsDouble();
+                                this.WallMaterialArea += area;
+                                if (Metrics.Keys.Contains(matName))
+                                {
+                                    Metrics[matName] += area;
+                                }
+                                else
+                                {
+                                    Metrics.Add(matName, area);
+                                }
+                            }
+                            catch
+                            {
+                                if (area>0) { error.Add(new Tuple<Element, string>(wall, TName)); }
+                                continue;
+                            }
                         }
                     }
-                    catch
-                    {
-                        error.Add(new Tuple<Element, string>(wall, TName));
-                        continue;
-                    }
+                    catch { continue; }
                 }
-                
             }
             if (error.Any())
             {
@@ -101,32 +110,38 @@ namespace AstRevitTool.Core.Analysis
             List<Tuple<Element, string>> error = new List<Tuple<Element, string>>();
             foreach (Element cpanel in this.AnalyzedElements["Curtain Panels"])
             {
-                this.TotalCurtainArea += cpanel.LookupParameter("Area").AsDouble();
-                Document doc = cpanel.Document;
-                ElementId typeId = cpanel.GetTypeId();
-                string TName = doc.GetElement(typeId).Name;
-                FamilyInstance fInstance = cpanel as FamilyInstance;
-                FamilySymbol FType = fInstance?.Symbol;
-                string FName = FType?.FamilyName;
-                try
-                {
-                    string fullname = byFamily == true ? FName : FName + " : " + TName;
-                    double area = cpanel.LookupParameter("Area").AsDouble();
-                    this.CurtainFamilyArea += area;
-                    if (Metrics.Keys.Contains(fullname))
-                    {
-                        Metrics[fullname] += area;
-                    }
-                    else
-                    {
-                        Metrics.Add(fullname, area);
-                    }
 
-                }
-                catch
+                this.TotalCurtainArea += AnalysisUtils.ElementArea(cpanel); 
+                Document doc = cpanel.Document;
+                double area = AnalysisUtils.ElementArea(cpanel);
+                if (AnalysisUtils.PanelEligable(cpanel))
                 {
-                    error.Add(new Tuple<Element, string>(cpanel, TName));
-                    continue;
+                    try
+                    {
+                        ElementId typeId = cpanel.GetTypeId();
+                        string TName = doc.GetElement(typeId).Name;
+                        FamilyInstance fInstance = cpanel as FamilyInstance;
+                        FamilySymbol FType = fInstance?.Symbol;
+                        string FName = FType?.FamilyName;
+                        string fullname = byFamily == true ? FName : FName + " : " + TName;
+                        //double area = cpanel.LookupParameter("Area").AsDouble();
+                        this.CurtainFamilyArea += area;
+                        if (Metrics.Keys.Contains(fullname))
+                        {
+                            Metrics[fullname] += area;
+                        }
+                        else
+                        {
+                            Metrics.Add(fullname, area);
+                        }
+
+                    }
+                    catch
+                    {
+                        if (area > 0) { error.Add(new Tuple<Element, string>(cpanel, cpanel.Name)); }
+                        //error.Add(new Tuple<Element, string>(cpanel, cpanel.Name));
+                        continue;
+                    }
                 }
             }
             if (error.Any())
@@ -134,7 +149,7 @@ namespace AstRevitTool.Core.Analysis
                 string errormsg = "Cannot extraction information in curtain panel, Please check those panels: ";
                 foreach (Tuple<Element, string> wall in error)
                 {
-                    errormsg += "\n" + wall.Item2 + ",Element Id: " + wall.Item1.Id.ToString();
+                    errormsg += "\n" + wall.Item2 ;
                 }
                 MessageBox.Show(errormsg, "Curtain Panel material information not Found!");
             }
@@ -205,6 +220,11 @@ namespace AstRevitTool.Core.Analysis
         public override Dictionary<string, double> ResultList()
         {
             return this.Metrics;
+        }
+
+        public override List<FilteredInfo> InfoList()
+        {
+            return new List<FilteredInfo>();
         }
     }
 }

@@ -24,12 +24,18 @@ namespace AstRevitTool.Core.Export
             return Path.Combine(defaultFolder, defaultName);
         }
 
+        public static string filename(Document maindoc, IAnalysis analysis)
+        {
+            return maindoc.Title + "_"+ analysis.Type();
+        }
+
         /// <summary>
         /// Export all visible element in current 3D view. Output an instance of context which includes visibility boolean information for all elements.
         /// </summary>
         public static void ExportView3D(Document maindoc, View3D view3d, UIApplication uiapp, out ElementsVisibleInViewExportContext context_)
         {
             ElementsVisibleInViewExportContext context = new ElementsVisibleInViewExportContext(maindoc);
+            context.UIApp= uiapp;
             CustomExporter exporter = new CustomExporter(maindoc, context);
             exporter.Export(view3d);
             context_ = context;
@@ -38,23 +44,22 @@ namespace AstRevitTool.Core.Export
         /// <summary>
         /// General txt export using a streamwriter
         /// </summary>
-        public static void txtExport(Document maindoc, IAnalysis analysis, out string report_)
+        public static void txtExport(TextWriter writer, IAnalysis analysis)
         {
-            string path = filepath(maindoc, analysis, ".txt");
-            StreamWriter stream = new StreamWriter(path);
+            if (analysis.ResultList().Count == 0)
+                return;
 
             string time = DateTime.Now.ToString(@"MM\/dd\/yyyy h\:mm tt");
             string title = "Arrowstreet Revit Project Report " + time + " ";
-            stream.WriteLine(title);
+            writer.WriteLine(title);
 
             string str = "";
             str += analysis.Type();
             str += "\n---Report Details--- ";
             str += analysis.Report();
-            stream.Write(str);
+            writer.Write(str);
 
-            report_ = str;
-            stream.Close();
+
         }
 
         public static void csvExport(TextWriter writer, IAnalysis analysis)

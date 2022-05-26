@@ -120,5 +120,10 @@ namespace AstRevitTool.Core.Analysis
             }
             return result;
         }
+
+        public override List<FilteredInfo> InfoList()
+        {
+            return new List<FilteredInfo>();
+        }
     }
 }

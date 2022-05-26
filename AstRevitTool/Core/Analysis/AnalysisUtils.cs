@@ -29,6 +29,42 @@ namespace AstRevitTool.Core.Analysis
             return true;
         }
 
+        public static bool WallEligable(Element W_door)
+        {
+            //Document doc = W_door.Document;
+            string name = W_door.Name;
+            if(name.Contains("Curtain Wall Door Host")) { return false; }
+            /*
+            IEnumerable<Element> associate = new FilteredElementCollector(doc).OfClass(typeof(FamilyInstance)).Where(m => (m as FamilyInstance).Host.Id == W_door.Id);
+            if (associate != null && associate.Count() >0)
+            {
+                foreach (Element element in associate)
+                {
+                    if(element.Name.IndexOf("Storefront", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        try {
+                            double w_area = W_door.LookupParameter("Area").AsDouble();
+                            double d_area = element.LookupParameter("Area").AsDouble();
+                            if (w_area < 1.01 * d_area)
+                            {
+                                return false;
+                            }
+                        }
+                        catch { continue; }
+                    }
+                }
+            
+            }*/
+
+            return true;
+        }
+
+        public static bool PanelEligable(Element panel)
+        {
+            string name = panel.Name;
+            return !name.Contains("Curtain Wall Door Host");
+        }
+
         //string key = "Double Sidelight", "Single Sidelight", or "Transom"
 
         public static Dictionary<string, string[]> _parameterMapping = new Dictionary<string, string[]>
@@ -201,6 +237,50 @@ namespace AstRevitTool.Core.Analysis
                 }
             }
             return instance_mat_areas;
+        }
+
+        private static double geoarea(GeometryElement geo)
+        {
+            double total= 0.0;
+            foreach (GeometryObject o in geo)
+            {
+                if (o is Solid)
+                {
+                    double area = 0.0;
+                    Solid solid = o as Solid;
+                    foreach (Face face in solid.Faces)
+                    {
+                        if (face.Area > area)
+                        {
+                            area = face.Area;
+                        };
+                    }
+                    total += area;
+                    
+                }
+                else if (o is GeometryInstance)
+                {
+                    GeometryInstance i = o as GeometryInstance;
+                    total += geoarea(i.GetInstanceGeometry(i.Transform));
+                }
+            }
+            return total;
+        }
+        public static double ElementArea(Element el)
+        {
+            double area = 0.0;
+            if (el.LookupParameter("Area")!=null)
+            {
+                area = el.LookupParameter("Area").AsDouble();
+            }
+            else
+            {
+                Options option = new Options();
+                GeometryElement geo = el.get_Geometry(option);
+                area = geoarea(geo);
+
+            }
+            return area;
         }
     }
 }

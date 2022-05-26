@@ -35,13 +35,15 @@ namespace AstRevitTool
 
             //optionsBtn.AddPushButton(new PushButtonData("AST Welcome", "Welcome to AST Revit Toolkits!", ExecutingAssemblyPath, "AST_Revit_Toolkit.HelloWorld"));
             optionsBtn.AddPushButton(typeof(CmdWWRCalc), "Window-to-wall Ratio Calculation");
-            optionsBtn.AddPushButton(typeof(CmdWallMat), "Wall Material Take-off");
+            //optionsBtn.AddPushButton(typeof(CmdWallMat), "Basic Wall Material Take-off");
             //optionsBtn.AddPushButton(new PushButtonData("Wall Types", "Summarize Facade by Types", ExecutingAssemblyPath, "AST_Revit_Toolkit.CmdWallType"));
             optionsBtn.AddPushButton(typeof(CmdWallFamily), "Facade Family Take-off");
-            optionsBtn.AddPushButton(typeof(CmdAssembly), "Assembly Types");
+            optionsBtn.AddPushButton(typeof(CmdAssembly), "Exterior Types Take-off");
             optionsBtn.AddPushButton(typeof(CmdAssemblyMaterial), "Assembly Material Decomposition");
-            optionsBtn.AddPushButton(typeof(CmdMatCalc), "Detailed Material Analysis");
+            optionsBtn.AddPushButton(typeof(CmdMatCalc), "Detailed Material Take-off");
             optionsBtn.AddPushButton(typeof(CmdUpdater), "Check Latest Update");
+            optionsBtn.AddPushButton(typeof(CmdLifeCycle), "Beta UI of Life Cycle Analysis");
+            //optionsBtn.AddPushButton(typeof(CmdBOMA), "BOMA tool");
             //optionsBtn.AddPushButton(new PushButtonData("Table Display", "Testing UI Form...", ExecutingAssemblyPath, "AST_Revit_Toolkit.CmdUIDisplay"));
         }
     }

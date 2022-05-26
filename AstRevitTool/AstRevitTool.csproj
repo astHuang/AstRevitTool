@@ -35,22 +35,59 @@
         <DefineConstants>$(DefineConstants);R22</DefineConstants>
     </PropertyGroup>
     <PropertyGroup>
-        <Version>1.0.3.0</Version>
+        <Version>2.1.0.0</Version>
         <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     </PropertyGroup>
     <ItemGroup>
+      <None Remove="Resources\bcursor.png" />
+      <None Remove="Resources\bmaindefinescope.png" />
+      <None Remove="Resources\bmainhelp2.png" />
+      <None Remove="Resources\bmainrefresh2.png" />
+      <None Remove="Resources\bmainsavereport.png" />
+      <None Remove="Resources\bmenufilter.png" />
+      <None Remove="Resources\bmenuunfilter.png" />
+      <None Remove="Resources\bnodedarkgray.png" />
+      <None Remove="Resources\bnodegray.png" />
+      <None Remove="Resources\bnodegrayacc.png" />
+      <None Remove="Resources\bnodegrayast.png" />
+      <None Remove="Resources\bnodegrayreadonly.png" />
+      <None Remove="Resources\bnodegreen.png" />
+      <None Remove="Resources\bnodered.png" />
+      <None Remove="Resources\bnodeyellow.png" />
+      <None Remove="Resources\buttondarkgraysmall2a.png" />
+      <None Remove="Resources\buttondarkgraysmalllock.png" />
+      <None Remove="Resources\buttongreensmall2a.png" />
+      <None Remove="Resources\buttongreensmalllock.png" />
+      <None Remove="Resources\buttonredsmall2a.png" />
+      <None Remove="Resources\buttonredsmalllock.png" />
+      <None Remove="Resources\buttonyellowsmall2a.png" />
+      <None Remove="Resources\buttonyellowsmalllock.png" />
+      <None Remove="Resources\ferc_subregion_map-small-2018.png" />
       <None Remove="Resources\Icons\16.png" />
       <None Remove="Resources\Icons\32.png" />
       <None Remove="Resources\Icons\icon-16.png" />
       <None Remove="Resources\Icons\icon-32.png" />
       <None Remove="Resources\Icons\icon.png" />
       <None Remove="Resources\Icons\icon16.ico" />
+      <None Remove="Resources\icons_add.png" />
+      <None Remove="Resources\icon_copy.png" />
+      <None Remove="Resources\icon_delete.png" />
+      <None Remove="Resources\icon_edit-bw.png" />
+      <None Remove="Resources\icon_help-bw.png" />
+      <None Remove="Resources\icon_help_16px-2.png" />
+      <None Remove="Resources\icon_rename-20--20copy.png" />
+      <None Remove="Resources\nerc_subregion_map-small.png" />
+      <None Remove="Resources\null2.png" />
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Autoupdater.NET.Official" Version="1.7.0" />
+        <PackageReference Include="LiveCharts.Wpf" Version="0.9.7" />
+        <PackageReference Include="Microsoft.Office.Interop.Excel" Version="15.0.4795.1000" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
         <PackageReference Include="Nice3point.Revit.Extensions" Version="$(RevitVersion).*" />
+        <PackageReference Include="PdfSharp" Version="1.50.5147" />
         <PackageReference Include="Revit_All_Main_Versions_IFC_x64" Version="2022.0.0" />
         <PackageReference Include="Revit_API_x64" Version="$(RevitVersion).*" />
     </ItemGroup>
@@ -61,21 +98,59 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Resource Include="Resources\bcursor.png" />
+        <Resource Include="Resources\bmaindefinescope.png" />
+        <Resource Include="Resources\bmainhelp2.png" />
+        <Resource Include="Resources\bmainrefresh2.png" />
+        <Resource Include="Resources\bmainsavereport.png" />
+        <Resource Include="Resources\bmenufilter.png" />
+        <Resource Include="Resources\bmenuunfilter.png" />
+        <Resource Include="Resources\bnodedarkgray.png" />
+        <Resource Include="Resources\bnodegray.png" />
+        <Resource Include="Resources\bnodegrayacc.png" />
+        <Resource Include="Resources\bnodegrayast.png" />
+        <Resource Include="Resources\bnodegrayreadonly.png" />
+        <Resource Include="Resources\bnodegreen.png" />
+        <Resource Include="Resources\bnodered.png" />
+        <Resource Include="Resources\bnodeyellow.png" />
+        <Resource Include="Resources\buttondarkgraysmall2a.png" />
+        <Resource Include="Resources\buttondarkgraysmalllock.png" />
+        <Resource Include="Resources\buttongreensmall2a.png" />
+        <Resource Include="Resources\buttongreensmalllock.png" />
+        <Resource Include="Resources\buttonredsmall2a.png" />
+        <Resource Include="Resources\buttonredsmalllock.png" />
+        <Resource Include="Resources\buttonyellowsmall2a.png" />
+        <Resource Include="Resources\buttonyellowsmalllock.png" />
+        <Resource Include="Resources\ferc_subregion_map-small-2018.png" />
         <Resource Include="Resources\Icons\icon-16.png" />
         <Resource Include="Resources\Icons\icon-32.png" />
         <Resource Include="Resources\Icons\icon.png" />
-        <EmbeddedResource Include="Resources\Icons\icon16.ico" />
+        <Resource Include="Resources\Icons\icon16.ico" />
         <Resource Include="Resources\Icons\RibbonIcon16.png" />
         <Resource Include="Resources\Icons\RibbonIcon32.png" />
+        <Resource Include="Resources\icons_add.png" />
+        <Resource Include="Resources\icon_copy.png" />
+        <Resource Include="Resources\icon_delete.png" />
+        <Resource Include="Resources\icon_edit-bw.png" />
+        <Resource Include="Resources\icon_help-bw.png" />
+        <Resource Include="Resources\icon_help_16px-2.png" />
+        <Resource Include="Resources\icon_rename-20--20copy.png" />
+        <Resource Include="Resources\nerc_subregion_map-small.png" />
+        <Resource Include="Resources\null2.png" />
     </ItemGroup>
 
     <ItemGroup>
+        <Folder Include="db\" />
         <Folder Include="Resources\Fonts" />
         <Folder Include="Resources\Localization" />
-        <Folder Include="Utils" />
+        <Folder Include="Utils\" />
     </ItemGroup>
 
     <ItemGroup>
+      <Reference Include="CarboLifeAPI">
+        <HintPath>..\..\..\..\Downloads\CarboLifeCalc-master\CarboLifeCalc-master\CarboLifeAPI\bin\Release\CarboLifeAPI.dll</HintPath>
+      </Reference>
+      <Reference Include="System.Reflection.Context" />
       <Reference Include="System.Windows.Forms" />
       <Reference Include="WindowsFormsIntegration" />
     </ItemGroup>
@@ -101,5 +176,9 @@
         </ItemGroup>
 
         <Copy SourceFiles="@(AddinFiles)" DestinationFolder="$(AppData)\Autodesk\Revit\Addins\$(RevitVersion)\%(RecursiveDir)" Condition="$(Configuration.Contains('Debug'))" />
+    </Target>
+
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+      <Exec Command="&quot;C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\signtool.exe&quot; sign /f &quot;C:\Users\huang\source\repos\AstRevitTool\arrowstreetSPC.pfx&quot; /t http://timestamp.comodoca.com/authenticode /p &quot;arrowstreet&quot; &quot;$(TargetPath)&quot; " />
     </Target>
 </Project>

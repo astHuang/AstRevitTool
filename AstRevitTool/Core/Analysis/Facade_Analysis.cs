@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Autodesk.Revit.DB;
+using Autodesk.Revit.UI;
 using System.Windows.Forms;
 
 
@@ -17,7 +18,6 @@ namespace AstRevitTool.Core.Analysis
 
         private ElementsVisibleInViewExportContext Context;
         private Autodesk.Revit.ApplicationServices.Application App;
-
         public Facade_Analysis(ElementsVisibleInViewExportContext context, Autodesk.Revit.ApplicationServices.Application app)
         {
             Context = context;
@@ -29,19 +29,19 @@ namespace AstRevitTool.Core.Analysis
             AnalyzedElements.Add("Curtain Panels", new HashSet<Element>());
             AnalyzedElements.Add("Floors", new HashSet<Element>());
             AnalyzedElements.Add("Roofs", new HashSet<Element>());
-
+            AnalyzedElements.Add("Generic Models", new HashSet<Element>());
         }
         public void Extraction() {
             List<Element> allwalls = new List<Element>();
             List<ElementId> hosts = new List<ElementId>();
             foreach(Document d in App.Documents)
             {
-                IList<Element> walls = new FilteredElementCollector(d).OfClass(typeof(Wall)).WhereElementIsNotElementType().ToElements();
+                IList<Element> walls = new FilteredElementCollector(d).OfCategory(BuiltInCategory.OST_Walls).WhereElementIsNotElementType().ToElements();
                 IList<Element> cpanels = new FilteredElementCollector(d).OfCategory(BuiltInCategory.OST_CurtainWallPanels).WhereElementIsNotElementType().ToElements();
                 FilteredElementCollector windows = new FilteredElementCollector(d).OfCategory(BuiltInCategory.OST_Windows);
                 FilteredElementCollector doors = new FilteredElementCollector(d).OfCategory(BuiltInCategory.OST_Doors);
-                IList<Element> floors = new FilteredElementCollector(d).OfClass(typeof(Floor)).WhereElementIsNotElementType().ToElements();
-                IList<Element> roofs = new FilteredElementCollector(d).OfClass(typeof(RoofBase)).WhereElementIsNotElementType().ToElements();
+                IList<Element> floors = new FilteredElementCollector(d).OfCategory(BuiltInCategory.OST_Floors).WhereElementIsNotElementType().ToElements();
+                IList<Element> roofs = new FilteredElementCollector(d).OfCategory(BuiltInCategory.OST_Roofs).WhereElementIsNotElementType().ToElements();
                 foreach (Element e in walls)
                 {
                     if (Context.get_ElementVisible(d, e.Id))
@@ -114,6 +114,32 @@ namespace AstRevitTool.Core.Analysis
             }
         }
 
+        public void ExtractGeneric()
+        {
+            foreach (Document d in App.Documents)
+            {
+                FilteredElementCollector gmodel = new FilteredElementCollector(d).OfCategory(BuiltInCategory.OST_GenericModel);
+                foreach (Element e in gmodel)
+                {
+                    if (Context.get_ElementVisible(d, e.Id))
+                    {
+                        AnalyzedElements["Generic Models"].Add(e);
+                    }
+                }
+            }
+        }
+        public virtual ICollection<Element> AllAnalyzedElement()
+        {
+            ICollection<Element> elements = new List<Element>();
+            foreach(KeyValuePair<string, HashSet<Element>> es in this.AnalyzedElements)
+            {
+                foreach (Element e in es.Value)
+                {
+                    elements.Add(e);
+                }
+            }
+            return elements;
+        }
         public abstract void AnalyzeBasicWalls();
 
         public abstract void AnalyzeCurtainWalls();
@@ -147,6 +173,10 @@ namespace AstRevitTool.Core.Analysis
         public virtual Dictionary<string, double> ResultList()
         {
             return new Dictionary<string, double>();
+        }
+
+        public virtual List<FilteredInfo> InfoList() { 
+            return new List<FilteredInfo>();
         }
     }
 }

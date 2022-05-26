@@ -5,35 +5,53 @@ using System.Text;
 using System.Threading.Tasks;
 using Autodesk.Revit.DB;
 using System.Windows.Forms;
+using AstRevitTool.Core.Analysis;
 
 namespace AstRevitTool.Core.Analysis
 {
     public class WWR_Analysis : Facade_Analysis
     {
         public WWR_Analysis(ElementsVisibleInViewExportContext context, Autodesk.Revit.ApplicationServices.Application app) : base(context,app) {
-            Metrics.Add("Solid Walls", 0.0);
-            Metrics.Add("Total Curtain Walls", 0.0);
-            Metrics.Add("::Curtain Wall, Vision Glazing", 0.0);
-            Metrics.Add("::Curtain Wall, Spandrel", 0.0);
-            Metrics.Add("Total Doors", 0.0);
-            Metrics.Add("::Doors, Full Glazing", 0.0);
-            Metrics.Add("::Doors, Solid", 0.0);
-            Metrics.Add("::Doors, Transom and Sidelights", 0.0);
-            Metrics.Add("Windows", 0.0);
+            string[] parameters = { "Solid Walls", 
+                "Total Curtain Walls", "::Curtain Wall, Vision Glazing" , "::Curtain Wall, Spandrel" , 
+                "Total Doors" , "::Doors, Full Glazing" ,"::Doors, Solid","::Doors, Transom and Sidelights",
+                "Windows"};
+            
+            foreach(string param in parameters)
+            {
+                Metrics.Add(param, 0.0);
+                this.MyInfo.Add(new FilteredInfo(param, 0.0));
+            }
+
             SpandrelMaterialsKeyword.Add("Spandrel");
             SpandrelMaterialsKeyword.Add("Shadow Box");
             this.wwr = 0.0;
             this.TotalFacade = 0.0;
             this.TotalOpening = 0.0;
+            this.ActiveView = context.MainDoc.ActiveView;
+        }
+        private List<FilteredInfo> MyInfo = new List<FilteredInfo>();
+        private ICollection<Element> MyElements = new List<Element>();
+        public override ICollection<Element> AllAnalyzedElement()
+        {
+            return MyElements;
         }
 
+        public Autodesk.Revit.DB.View ActiveView;
         public override void AnalyzeBasicWalls()
         {
             foreach (Element wall in this.AnalyzedElements["Basic Walls"])
             {
-                Metrics["Solid Walls"] += wall.LookupParameter("Area").AsDouble();
+                string key = "Solid Walls";
+                double area = AnalysisUtils.ElementArea(wall);
+                //double area = wall.LookupParameter("Area").AsDouble();
+                Metrics[key] += area;
+                FilteredInfo.matchInfoFromList(this.MyInfo, key).Area += area;
+                FilteredInfo.matchInfoFromList(this.MyInfo, key).FilteredElements.Add(wall);
+                MyElements.Add(wall);
             }
         }
+
         public double wwr { get; set; }
         public double TotalOpening { get; set; }
         public double TotalFacade { get; set; }
@@ -43,8 +61,9 @@ namespace AstRevitTool.Core.Analysis
             foreach (Element cpanels in this.AnalyzedElements["Curtain Walls"])
             {
                 double cw_area = 0.0;
-                cw_area = cpanels.LookupParameter("Area").AsDouble();
+                cw_area = AnalysisUtils.ElementArea(cpanels);
                 Metrics["Total Curtain Walls"] += cw_area;
+                MyElements.Add(cpanels);
             }
 
             foreach (Element cpanel in this.AnalyzedElements["Curtain Panels"])
@@ -60,16 +79,19 @@ namespace AstRevitTool.Core.Analysis
                     if (id != null)
                     {
                         Material mat = doc.GetElement(id) as Material;
-                        if (mat.Transparency < 5 || SpandrelMaterialsKeyword.Any(mat.Name.Contains))
+                        if (null != mat)
                         {
-                            Metrics["::Curtain Wall, Spandrel"] += cpanel.LookupParameter("Area").AsDouble();
+                            if (mat.Transparency < 5 || SpandrelMaterialsKeyword.Any(mat.Name.Contains))
+                            {
+                                Metrics["::Curtain Wall, Spandrel"] += AnalysisUtils.ElementArea(cpanel);
+                            }
                         }
                     }
 
                 }
                 else if(null != panelSymbol){
                     Options option = new Options();
-                    option.View = doc.ActiveView;
+                    option.View = this.ActiveView;
                     option.ComputeReferences = true;
                     GeometryElement geoEl = cpanel.get_Geometry(option);
                     add_spandrel_area(geoEl, SpandrelMaterialsKeyword, doc);
@@ -119,6 +141,7 @@ namespace AstRevitTool.Core.Analysis
                 try
                 {
                     d_area = AnalysisUtils.GetInstanceSurfaceAreaMetric(fInstance);
+                    MyElements.Add(door);
                 }
                 catch
                 {
@@ -165,7 +188,7 @@ namespace AstRevitTool.Core.Analysis
                 try
                 {
                     w_area = AnalysisUtils.GetInstanceSurfaceAreaMetric(fInstance);
-
+                    MyElements.Add(window);
                 }
                 catch
                 {
@@ -237,6 +260,11 @@ namespace AstRevitTool.Core.Analysis
         public override Dictionary<string, double> ResultList()
         {
             return this.Metrics;
+        }
+
+        public override List<FilteredInfo> InfoList()
+        {
+            return this.MyInfo;
         }
     }
 }

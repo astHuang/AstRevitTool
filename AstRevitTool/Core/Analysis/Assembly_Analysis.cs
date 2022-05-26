@@ -17,18 +17,22 @@ namespace AstRevitTool.Core.Analysis
         private ElementsVisibleInViewExportContext Context;
         private Autodesk.Revit.ApplicationServices.Application App;
 
+        private Dictionary<string, double> subTotals = new Dictionary<string, double>();
         public virtual Dictionary<string, Tuple<string,double>> Quantities { get; set; } = new Dictionary<string, Tuple<string, double>>();
         public List<string> SpandrelMaterialsKeyword { get; set; } = new List<string>();
-
+        public Autodesk.Revit.DB.View ActiveView { get; set; }
         public Assembly_Analysis(ElementsVisibleInViewExportContext context, Autodesk.Revit.ApplicationServices.Application app)
         {
             Context = context;
             App = app;
+            ActiveView = context.MainDoc.ActiveView;
             AnalyzedElements.Add("Basic Walls", new HashSet<Element>());
             AnalyzedElements.Add("Curtain Walls", new HashSet<Element>());
             AnalyzedElements.Add("Curtain Panels", new HashSet<Element>());
             AnalyzedElements.Add("Floors", new HashSet<Element>());
             AnalyzedElements.Add("Roofs", new HashSet<Element>());
+            AnalyzedElements.Add("Doors", new HashSet<Element>());
+            AnalyzedElements.Add("Windows", new HashSet<Element>());
             AnalyzedElements.Add("Ceilings", new HashSet<Element>());
             SpandrelMaterialsKeyword.Add("Spandrel");
             SpandrelMaterialsKeyword.Add("ShadowBox");
@@ -88,6 +92,21 @@ namespace AstRevitTool.Core.Analysis
                     }
                 }
 
+                foreach (Element e in windows)
+                {
+                    if (Context.get_ElementVisible(d, e.Id))
+                    {
+                        AnalyzedElements["Windows"].Add(e);
+                    }
+                }
+
+                foreach (Element e in doors)
+                {
+                    if (Context.get_ElementVisible(d, e.Id))
+                    {
+                        AnalyzedElements["Doors"].Add(e);
+                    }
+                }
                 foreach (Element e in roofs)
                 {
                     if (Context.get_ElementVisible(d, e.Id))
@@ -98,9 +117,23 @@ namespace AstRevitTool.Core.Analysis
             }
         }
 
+        public ICollection<Element> AllAnalyzedElement()
+        {
+            ICollection<Element> elements = new List<Element>();
+            foreach (KeyValuePair<string, HashSet<Element>> es in this.AnalyzedElements)
+            {
+                foreach (Element e in es.Value)
+                {
+                    elements.Add(e);
+                }
+            }
+            return elements;
+        }
+
         #region Analyze Methods
         private void AnalyzeCompoundStructure(string keyword)
         {
+            double total = 0.0;
             foreach (Element ele in this.AnalyzedElements[keyword])
             {
                 Document doc = ele.Document;
@@ -111,7 +144,17 @@ namespace AstRevitTool.Core.Analysis
                 TName += " // " + TMark;
                 try
                 {
-                    double area = ele.LookupParameter("Area").AsDouble();
+                    double area = 0.0;
+                    if (keyword == "Windows" || keyword == "Doors")
+                    {
+                        FamilyInstance fInstance = ele as FamilyInstance;
+                        area = AnalysisUtils.GetInstanceSurfaceAreaMetric(fInstance);
+                    }
+                    else 
+                    {
+                        area = ele.LookupParameter("Area").AsDouble();
+                    }
+                    total += area;
                     if (Quantities.Keys.Contains(TName))
                     {
                         double sumarea = Quantities[TName].Item2 + area;
@@ -127,6 +170,10 @@ namespace AstRevitTool.Core.Analysis
                 {
                     continue;
                 }
+            }
+            if(total > 0)
+            {
+                this.subTotals.Add(keyword, total);
             }
         }
 
@@ -174,7 +221,7 @@ namespace AstRevitTool.Core.Analysis
                     else if (null != panelSymbol)
                     {
                         Options option = new Options();
-                        option.View = doc.ActiveView;
+                        option.View = this.ActiveView;
                         option.ComputeReferences = true;
                         GeometryElement geoEl = cpanel.get_Geometry(option);
                         add_spandrel_area(geoEl, SpandrelMaterialsKeyword, doc);
@@ -215,6 +262,10 @@ namespace AstRevitTool.Core.Analysis
             }
 
             Quantities["Curtain Wall: Glazing"] = new Tuple<string, double>("Vision Glazing", totalarea - Quantities["Curtain Wall: Spandrel"].Item2);
+            if (totalarea > 0)
+            {
+                this.subTotals.Add("Curtain Wall", totalarea);
+            }
         }
 
         private void add_spandrel_area(GeometryElement geo, List<string> cands, Document doc)
@@ -249,6 +300,8 @@ namespace AstRevitTool.Core.Analysis
             AnalyzeCompoundStructure("Roofs");
             AnalyzeCompoundStructure("Floors");
             AnalyzeCompoundStructure("Ceilings");
+            AnalyzeCompoundStructure("Windows");
+            AnalyzeCompoundStructure("Doors");
             AnalyzeCurtainWalls();
         }
 
@@ -271,7 +324,13 @@ namespace AstRevitTool.Core.Analysis
 
         public virtual string Conclusion()
         {
-            return "";
+            string con = "";
+            con += "Exterior type take-off\n\n";
+            foreach(KeyValuePair<string, double> entry in this.subTotals)
+            {
+                con+="\n - Total " + entry.Key + " Area: " + entry.Value.ToString("0.###");
+            }
+            return con;
         }
 
         public virtual Dictionary<string,double> ResultList()
@@ -287,5 +346,9 @@ namespace AstRevitTool.Core.Analysis
             return result;
         }
 
+        public virtual List<FilteredInfo> InfoList()
+        {
+            return new List<FilteredInfo>();
+        }
     }
 }

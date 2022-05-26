@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Autodesk.Revit.DB;
+using Autodesk.Revit.UI;
 using System.Windows.Forms;
 
 namespace AstRevitTool.Core.Analysis
@@ -16,12 +17,30 @@ namespace AstRevitTool.Core.Analysis
             this.SortByType = false;
             this.AnalyzingVolume = false;
             this.SortByCategory = false;
+            this.IncludeGeneric = false;
+            this.ActiveView = context.MainDoc.ActiveView;
+            this.UIApp = context.UIApp;
         }
         public bool SortByCategory { get; set; }
         public bool SortByFamily { get; set; }
         public bool SortByType { get; set; }
 
+        public bool IncludeGeneric { get; set; }
+
+        public Autodesk.Revit.DB.View ActiveView { get; set; }
+        public Autodesk.Revit.UI.UIApplication UIApp { get; set; }
+
+        private ICollection<Element> MyElements = new List<Element>();
+
+        private List<FilteredInfo> MyInfo = new List<FilteredInfo>();
+
+        public override ICollection<Element> AllAnalyzedElement()
+        {
+            return MyElements;
+        }
         public bool AnalyzingVolume { get; set; }
+
+
 
         private string MatName(Document doc,Face face,string mat_extra)
         {
@@ -29,7 +48,7 @@ namespace AstRevitTool.Core.Analysis
             if (mat_extra == "") return name;
             else return mat_extra + " :: " + name;
         }
-        public void add_material_area(GeometryElement geo, Document doc,string mat_extra)
+        public void add_material_area(Element ele, GeometryElement geo, Document doc,string mat_extra)
         {
             foreach (GeometryObject o in geo)
             {
@@ -44,21 +63,31 @@ namespace AstRevitTool.Core.Analysis
                         if (face.Area > area) {
                             area = face.Area;
                             materialname = MatName(doc,face,mat_extra);
+                            if(materialname.Contains("Default Curtain Wall"))
+                            {
+                                //System.Console.WriteLine(solid.SurfaceArea);
+                            }
                         };
                     }
                     if (Metrics.ContainsKey(materialname))
                     {
                         Metrics[materialname] += area;
+                        FilteredInfo.matchInfoFromList(this.MyInfo, materialname).Area += area;
+                        FilteredInfo.matchInfoFromList(this.MyInfo, materialname).FilteredElements.Add(ele);
                     }
                     else if(materialname != "" && !Metrics.ContainsKey(materialname))
                     {
                         Metrics.Add(materialname,area);
+                        List<Element> init = new List<Element>();
+                        init.Add(ele);
+                        this.MyInfo.Add(new FilteredInfo(materialname, area,init));
+                        //this.InfoList.Add(new FilteredInfo(materialname, area,solid.Volume,));
                     }                   
                 }
                 else if (o is GeometryInstance)
                 {
                     GeometryInstance i = o as GeometryInstance;
-                    add_material_area(i.GetInstanceGeometry(i.Transform), doc,mat_extra);
+                    add_material_area(ele,i.GetInstanceGeometry(i.Transform), doc,mat_extra);
                 }
             }
         }
@@ -101,7 +130,15 @@ namespace AstRevitTool.Core.Analysis
         {
             Document doc = el.Document;
             Options option = new Options();
-            option.View = doc.ActiveView;
+            /*
+            if (doc.ActiveView == null)
+            {
+                Element linked = el;
+                Document thisdoc = doc;
+                
+            }*/
+            option.View = this.ActiveView;
+            
             option.ComputeReferences = true;
             GeometryElement geoEl = el.get_Geometry(option);
             string MatNameExtra = "";
@@ -127,12 +164,12 @@ namespace AstRevitTool.Core.Analysis
                         }
                         else
                         {
-                            MatNameExtra += FName;
+                            MatNameExtra += " :: " + FName;
                         }
                     }
                     else
                     {
-                        MatNameExtra += TName;
+                        MatNameExtra += " :: " + TName;
                     }
                 }
             }
@@ -142,8 +179,9 @@ namespace AstRevitTool.Core.Analysis
                 add_material_volume(geoEl, doc, MatNameExtra);
             }
             else{
-                add_material_area(geoEl, doc, MatNameExtra);
+                add_material_area(el,geoEl, doc, MatNameExtra);
             }
+            MyElements.Add(el);
             
         }
         public override void AnalyzeBasicWalls()
@@ -194,9 +232,22 @@ namespace AstRevitTool.Core.Analysis
             }
         }
 
+        public void AnalyzeGModels()
+        {
+            foreach (Element g in this.AnalyzedElements["Generic Models"])
+            {
+                process_element(g);
+            }
+        }
+
         public override void Analyze()
         {
             base.Extraction();
+            if(this.IncludeGeneric == true)
+            {
+                base.ExtractGeneric();
+                AnalyzeGModels();
+            }
             AnalyzeBasicWalls();
             AnalyzeCurtainWalls();
             AnalyzeDoors();
@@ -226,6 +277,11 @@ namespace AstRevitTool.Core.Analysis
         public override Dictionary<string, double> ResultList()
         {
             return this.Metrics;
+        }
+
+        public override List<FilteredInfo> InfoList()
+        {
+            return this.MyInfo;
         }
     }
 }

@@ -4,12 +4,17 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Autodesk.Revit.DB;
+using Autodesk.Revit.UI;
 
 namespace AstRevitTool.Core
 {
     public class ElementsVisibleInViewExportContext : IExportContext
     {
         private Stack<Document> Documents = new Stack<Document>();
+
+        public Document MainDoc { get; set; } = null;
+
+        public UIApplication UIApp { get; set; } = null;
 
         public Dictionary<string, HashSet<ElementId>> Elements { get; set; } = new Dictionary<string, HashSet<ElementId>>();
 
@@ -31,6 +36,7 @@ namespace AstRevitTool.Core
         {
             Documents.Push(mainDocument);
             Elements.Add(mainDocument.PathName, new HashSet<ElementId>());
+            MainDoc = mainDocument;
         }
 
         public bool Start()
