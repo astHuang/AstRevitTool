@@ -12,7 +12,7 @@ const string installationDir = @"%AppDataFolder%\Autodesk\Revit\Addins\";
 const string projectName = "AstRevitTool";
 const string outputName = "AstRevitTool";
 const string outputDir = "output";
-const string version = "2.1.0.0";
+const string version = "2.1.0.1";
 
 var fileName = new StringBuilder().Append(outputName).Append("-").Append(version);
 //Additional suffixes for unique configurations add here

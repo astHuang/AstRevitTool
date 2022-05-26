@@ -231,7 +231,7 @@ namespace AstRevitTool.Views
             // 
             // button4
             // 
-            this.button4.Location = new System.Drawing.Point(16, 193);
+            this.button4.Location = new System.Drawing.Point(16, 165);
             this.button4.Name = "button4";
             this.button4.Size = new System.Drawing.Size(180, 31);
             this.button4.TabIndex = 13;
@@ -241,7 +241,7 @@ namespace AstRevitTool.Views
             // 
             // button5
             // 
-            this.button5.Location = new System.Drawing.Point(217, 193);
+            this.button5.Location = new System.Drawing.Point(217, 165);
             this.button5.Name = "button5";
             this.button5.Size = new System.Drawing.Size(85, 31);
             this.button5.TabIndex = 14;

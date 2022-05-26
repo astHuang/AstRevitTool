@@ -35,7 +35,7 @@
         <DefineConstants>$(DefineConstants);R22</DefineConstants>
     </PropertyGroup>
     <PropertyGroup>
-        <Version>2.1.0.0</Version>
+        <Version>2.1.0.1</Version>
         <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     </PropertyGroup>
@@ -148,11 +148,17 @@
 
     <ItemGroup>
       <Reference Include="CarboLifeAPI">
-        <HintPath>..\..\..\..\Downloads\CarboLifeCalc-master\CarboLifeCalc-master\CarboLifeAPI\bin\Release\CarboLifeAPI.dll</HintPath>
+        <HintPath>ext\CarboLifeAPI.dll</HintPath>
       </Reference>
       <Reference Include="System.Reflection.Context" />
       <Reference Include="System.Windows.Forms" />
       <Reference Include="WindowsFormsIntegration" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="ext\CarboLifeAPI.dll">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
     <Target Name="CopyFiles" AfterTargets="CoreBuild">
