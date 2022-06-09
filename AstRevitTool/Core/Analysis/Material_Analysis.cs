@@ -25,7 +25,7 @@ namespace AstRevitTool.Core.Analysis
         private double TotalCurtainArea { get; set; }
 
         private double WallMaterialArea { get; set; }
-
+        private List<FilteredInfo> MyInfo = new List<FilteredInfo>();
         private double CurtainFamilyArea { get; set; }
         public bool byFamily { get; set; }
         public override void AnalyzeBasicWalls()
@@ -53,10 +53,15 @@ namespace AstRevitTool.Core.Analysis
                                 if (Metrics.Keys.Contains(fullname))
                                 {
                                     Metrics[fullname] += area;
+                                    FilteredInfo.matchInfoFromList(this.MyInfo, fullname).Area += area;
+                                    FilteredInfo.matchInfoFromList(this.MyInfo, fullname).FilteredElements.Add(wall);
                                 }
                                 else
                                 {
                                     Metrics.Add(fullname, area);
+                                    List<Element> init = new List<Element>();
+                                    init.Add(wall);
+                                    this.MyInfo.Add(new FilteredInfo(fullname, area, init));
                                 }
 
                             }
@@ -78,10 +83,15 @@ namespace AstRevitTool.Core.Analysis
                                 if (Metrics.Keys.Contains(matName))
                                 {
                                     Metrics[matName] += area;
+                                    FilteredInfo.matchInfoFromList(this.MyInfo, matName).Area += area;
+                                    FilteredInfo.matchInfoFromList(this.MyInfo, matName).FilteredElements.Add(wall);
                                 }
                                 else
                                 {
                                     Metrics.Add(matName, area);
+                                    List<Element> init = new List<Element>();
+                                    init.Add(wall);
+                                    this.MyInfo.Add(new FilteredInfo(matName, area, init));
                                 }
                             }
                             catch
@@ -129,10 +139,15 @@ namespace AstRevitTool.Core.Analysis
                         if (Metrics.Keys.Contains(fullname))
                         {
                             Metrics[fullname] += area;
+                            FilteredInfo.matchInfoFromList(this.MyInfo, fullname).Area += area;
+                            FilteredInfo.matchInfoFromList(this.MyInfo, fullname).FilteredElements.Add(cpanel);
                         }
                         else
                         {
                             Metrics.Add(fullname, area);
+                            List<Element> init = new List<Element>();
+                            init.Add(cpanel);
+                            this.MyInfo.Add(new FilteredInfo(fullname, area, init));
                         }
 
                     }
@@ -224,7 +239,7 @@ namespace AstRevitTool.Core.Analysis
 
         public override List<FilteredInfo> InfoList()
         {
-            return new List<FilteredInfo>();
+            return this.MyInfo;
         }
     }
 }

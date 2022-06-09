@@ -20,7 +20,7 @@ namespace AstRevitTool.Core.Analysis
 
         private Dictionary<string, MaterialQuantities> m_totalQuantities = new Dictionary<string, MaterialQuantities>();
         private Dictionary<ElementId, Dictionary<string, MaterialQuantities>> m_quantitiesPerElement = new Dictionary<ElementId, Dictionary<string, MaterialQuantities>>();
-
+        private List<FilteredInfo> MyInfo = new List<FilteredInfo>();
         class MaterialQuantities
         {
             public double Volume { get; set; }
@@ -42,24 +42,25 @@ namespace AstRevitTool.Core.Analysis
                 {
                     string cat = e.Category.Name;
                     string mat = cat + ": " + doc.GetElement(matid).Name;
-                    StoreMaterialQuantities(mat, area, volume, m_totalQuantities);
+                    StoreMaterialQuantities(e,mat, area, volume, m_totalQuantities);
                     Dictionary<string, MaterialQuantities> quantityperelement;
                     bool found = m_quantitiesPerElement.TryGetValue(id, out quantityperelement);
                     if (found)
                     {
-                        StoreMaterialQuantities(mat, area, volume, quantityperelement);
+                        StoreMaterialQuantities(e,mat, area, volume, quantityperelement);
                     }
                     else
                     {
                         quantityperelement = new Dictionary<string, MaterialQuantities>();
-                        StoreMaterialQuantities(mat, area, volume, quantityperelement);
+                        StoreMaterialQuantities(e,mat, area, volume, quantityperelement);
                         m_quantitiesPerElement.Add(id, quantityperelement);
+                        
                     }
                 }
             }
         }
 
-        private void StoreMaterialQuantities(string mat,double area,double volume, Dictionary<string, MaterialQuantities> quantities)
+        private void StoreMaterialQuantities(Element e,string mat,double area,double volume, Dictionary<string, MaterialQuantities> quantities)
         {
             MaterialQuantities quantityperelement;
             bool found = quantities.TryGetValue(mat, out quantityperelement);
@@ -67,6 +68,7 @@ namespace AstRevitTool.Core.Analysis
             {
                 quantityperelement.Area += area;
                 quantityperelement.Volume += volume;
+                FilteredInfo.matchInfoFromList(this.MyInfo, mat).FilteredElements.Add(e);
             }
             else
             {
@@ -74,6 +76,9 @@ namespace AstRevitTool.Core.Analysis
                 quantityperelement.Area = area;
                 quantityperelement.Volume = volume;
                 quantities.Add(mat, quantityperelement);
+                List<Element> init = new List<Element>();
+                init.Add(e);
+                this.MyInfo.Add(new FilteredInfo(mat, area, init));
             }
         }
 
@@ -123,7 +128,7 @@ namespace AstRevitTool.Core.Analysis
 
         public override List<FilteredInfo> InfoList()
         {
-            return new List<FilteredInfo>();
+            return MyInfo;
         }
     }
 }

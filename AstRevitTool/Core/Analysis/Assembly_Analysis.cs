@@ -21,6 +21,10 @@ namespace AstRevitTool.Core.Analysis
         public virtual Dictionary<string, Tuple<string,double>> Quantities { get; set; } = new Dictionary<string, Tuple<string, double>>();
         public List<string> SpandrelMaterialsKeyword { get; set; } = new List<string>();
         public Autodesk.Revit.DB.View ActiveView { get; set; }
+
+        private ICollection<Element> MyElements = new List<Element>();
+
+        private List<FilteredInfo> MyInfo = new List<FilteredInfo>();
         public Assembly_Analysis(ElementsVisibleInViewExportContext context, Autodesk.Revit.ApplicationServices.Application app)
         {
             Context = context;
@@ -152,17 +156,24 @@ namespace AstRevitTool.Core.Analysis
                     }
                     else 
                     {
-                        area = ele.LookupParameter("Area").AsDouble();
+                        //area = ele.LookupParameter("Area").AsDouble();
+                        area = AnalysisUtils.ElementArea(ele);
                     }
                     total += area;
                     if (Quantities.Keys.Contains(TName))
                     {
                         double sumarea = Quantities[TName].Item2 + area;
+                        FilteredInfo.matchInfoFromList(this.MyInfo, TName).Area += area;
+                        FilteredInfo.matchInfoFromList(this.MyInfo, TName).FilteredElements.Add(ele);
                         Quantities[TName] = new Tuple<string, double>(TMark, sumarea);
+
                     }
                     else
                     {
                         Quantities.Add(TName, new Tuple<string, double>(TMark,area));
+                        List<Element> init = new List<Element>();
+                        init.Add(ele);
+                        this.MyInfo.Add(new FilteredInfo(TName, area, init));
                     }
 
                 }
@@ -182,14 +193,15 @@ namespace AstRevitTool.Core.Analysis
             double totalarea = 0.0;
             Quantities.Add("Curtain Wall: Spandrel", new Tuple<string, double>("Spandrel Curtainwall", 0.0));
             Quantities.Add("Curtain Wall: Glazing", new Tuple<string, double>("Vision Glazing", 0.0));
-
+            this.MyInfo.Add(new FilteredInfo("Curtain Wall: Spandrel", 0.0));
+            this.MyInfo.Add(new FilteredInfo("Curtain Wall: Glazing", 0.0));
             foreach (Element cpanels in this.AnalyzedElements["Curtain Walls"])
             {
                 try
                 {
                     double cw_area = 0.0;
                     cw_area = cpanels.LookupParameter("Area").AsDouble();
-                    totalarea += cw_area;
+                    totalarea += cw_area;                   
                 }
                 catch
                 {
@@ -214,6 +226,12 @@ namespace AstRevitTool.Core.Analysis
                             {
                                 double sumarea = cpanel.LookupParameter("Area").AsDouble() + Quantities["Curtain Wall: Spandrel"].Item2;
                                 Quantities["Curtain Wall: Spandrel"] = new Tuple<string, double>("Spandrel Curtainwall", sumarea);
+                                FilteredInfo.matchInfoFromList(this.MyInfo, "Curtain Wall: Spandrel").Area += cpanel.LookupParameter("Area").AsDouble();
+                                FilteredInfo.matchInfoFromList(this.MyInfo, "Curtain Wall: Spandrel").FilteredElements.Add(cpanel);
+                            }
+                            else {
+                                FilteredInfo.matchInfoFromList(this.MyInfo, "Curtain Wall: Glazing").Area += cpanel.LookupParameter("Area").AsDouble();
+                                FilteredInfo.matchInfoFromList(this.MyInfo, "Curtain Wall: Glazing").FilteredElements.Add(cpanel);
                             }
                         }
 
@@ -224,7 +242,7 @@ namespace AstRevitTool.Core.Analysis
                         option.View = this.ActiveView;
                         option.ComputeReferences = true;
                         GeometryElement geoEl = cpanel.get_Geometry(option);
-                        add_spandrel_area(geoEl, SpandrelMaterialsKeyword, doc);
+                        add_spandrel_area(cpanel,geoEl, SpandrelMaterialsKeyword, doc);
                     }
                 }
                 catch
@@ -268,7 +286,7 @@ namespace AstRevitTool.Core.Analysis
             }
         }
 
-        private void add_spandrel_area(GeometryElement geo, List<string> cands, Document doc)
+        private void add_spandrel_area(Element ele,GeometryElement geo, List<string> cands, Document doc)
         {
             foreach (GeometryObject o in geo)
             {
@@ -283,12 +301,22 @@ namespace AstRevitTool.Core.Analysis
                         area = spandrel ? face.Area : area;
                     }
                     double sumarea = Quantities["Curtain Wall: Spandrel"].Item2 + area;
+                    if (area > 0)
+                    {
+                        FilteredInfo.matchInfoFromList(this.MyInfo, "Curtain Wall: Spandrel").Area += area;
+                        FilteredInfo.matchInfoFromList(this.MyInfo, "Curtain Wall: Spandrel").FilteredElements.Add(ele);
+                    }
+                    else
+                    {
+                        FilteredInfo.matchInfoFromList(this.MyInfo, "Curtain Wall: Glazing").Area += area;
+                        FilteredInfo.matchInfoFromList(this.MyInfo, "Curtain Wall: Glazing").FilteredElements.Add(ele);
+                    }
                     Quantities["Curtain Wall: Spandrel"] = new Tuple<string, double>("Spandrel Curtainwall", sumarea);
                 }
                 else if (o is GeometryInstance)
                 {
                     GeometryInstance i = o as GeometryInstance;
-                    add_spandrel_area(i.GetInstanceGeometry(i.Transform), cands, doc);
+                    add_spandrel_area(ele,i.GetInstanceGeometry(i.Transform), cands, doc);
                 }
             }
         }
@@ -348,7 +376,7 @@ namespace AstRevitTool.Core.Analysis
 
         public virtual List<FilteredInfo> InfoList()
         {
-            return new List<FilteredInfo>();
+            return this.MyInfo;
         }
     }
 }

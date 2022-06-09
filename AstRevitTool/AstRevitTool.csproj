@@ -35,7 +35,7 @@
         <DefineConstants>$(DefineConstants);R22</DefineConstants>
     </PropertyGroup>
     <PropertyGroup>
-        <Version>2.1.0.1</Version>
+        <Version>2.1.1.0</Version>
         <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     </PropertyGroup>
@@ -140,6 +140,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Folder Include="Core\UnitMatrix\" />
         <Folder Include="db\" />
         <Folder Include="Resources\Fonts" />
         <Folder Include="Resources\Localization" />

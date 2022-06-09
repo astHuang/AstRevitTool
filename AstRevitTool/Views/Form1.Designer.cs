@@ -119,6 +119,7 @@ namespace AstRevitTool.Views
             this.button3 = new System.Windows.Forms.Button();
             this.button4 = new System.Windows.Forms.Button();
             this.button5 = new System.Windows.Forms.Button();
+            this.button6 = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // m_bnOK
@@ -184,10 +185,11 @@ namespace AstRevitTool.Views
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(14, 218);
+            this.label3.Location = new System.Drawing.Point(14, 260);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(0, 16);
+            this.label3.Size = new System.Drawing.Size(126, 16);
             this.label3.TabIndex = 7;
+            this.label3.Text = "Analysis Information";
             // 
             // label4
             // 
@@ -231,7 +233,7 @@ namespace AstRevitTool.Views
             // 
             // button4
             // 
-            this.button4.Location = new System.Drawing.Point(16, 165);
+            this.button4.Location = new System.Drawing.Point(14, 165);
             this.button4.Name = "button4";
             this.button4.Size = new System.Drawing.Size(180, 31);
             this.button4.TabIndex = 13;
@@ -241,20 +243,32 @@ namespace AstRevitTool.Views
             // 
             // button5
             // 
-            this.button5.Location = new System.Drawing.Point(217, 165);
+            this.button5.Location = new System.Drawing.Point(215, 165);
             this.button5.Name = "button5";
-            this.button5.Size = new System.Drawing.Size(85, 31);
+            this.button5.Size = new System.Drawing.Size(85, 77);
             this.button5.TabIndex = 14;
-            this.button5.Text = "Clear Color";
+            this.button5.Text = "Clear";
             this.button5.UseVisualStyleBackColor = true;
             this.button5.Click += new System.EventHandler(this.button5_Click);
+            // 
+            // button6
+            // 
+            this.button6.Location = new System.Drawing.Point(14, 211);
+            this.button6.Name = "button6";
+            this.button6.Size = new System.Drawing.Size(180, 31);
+            this.button6.TabIndex = 15;
+            this.button6.Text = "Select Elements in Revit";
+            this.button6.UseVisualStyleBackColor = true;
+            this.button6.Click += new System.EventHandler(this.button6_Click);
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoValidate = System.Windows.Forms.AutoValidate.EnablePreventFocusChange;
             this.BackColor = System.Drawing.SystemColors.HighlightText;
             this.ClientSize = new System.Drawing.Size(800, 617);
+            this.Controls.Add(this.button6);
             this.Controls.Add(this.button5);
             this.Controls.Add(this.button4);
             this.Controls.Add(this.button3);
@@ -267,7 +281,7 @@ namespace AstRevitTool.Views
             this.Controls.Add(this.label1);
             this.Controls.Add(this.m_bnOK);
             this.Name = "Form1";
-            this.Text = "Form1";
+            this.Text = "AST Take-off Table";
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -289,5 +303,6 @@ namespace AstRevitTool.Views
         private Button button3;
         private Button button4;
         private Button button5;
+        private Button button6;
     }
 }

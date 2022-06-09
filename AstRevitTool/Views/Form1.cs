@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using AstRevitTool.Core.Analysis;
 using AstRevitTool.Core.Export;
 using Autodesk.Revit.DB;
+using Autodesk.Revit.UI;
 using System.Net;
 using System.Net.Mail;
 using System.IO;
@@ -179,6 +180,7 @@ namespace AstRevitTool.Views
             }
 
             List<ElementId> flattenedList = tohighlited.SelectMany(x => x).ToList();
+            if (flattenedList.Count == 0) return;
             if (allselected.Count > flattenedList.Count)
             {
                 MessageBox.Show("There are " + (allselected.Count - flattenedList.Count).ToString() + " elements in linked file that we cannot color! Please go into linked model to check");
@@ -274,12 +276,53 @@ namespace AstRevitTool.Views
             }
             string text = this.my_analysis.Conclusion();
             this.label3.Text = text;
+            UIDocument uiDoc = new UIDocument(this.maindoc);
+            uiDoc.Selection.SetElementIds(new List<ElementId>());
 
         }
 
         private void m_lvData_SelectedIndexChanged(object sender, EventArgs e)
         {
             this.m_lvData.Sort() ;
+        }
+
+        private void button6_Click(object sender, EventArgs e)
+        {
+            UIDocument uiDoc = new UIDocument(this.maindoc);
+            var selecteditems = this.m_lvData.SelectedItems;
+            List<Element> allselected = new List<Element>();
+            foreach (ListViewItem item in selecteditems)
+            {
+                var elelist = item.Tag as List<Element>;
+                allselected.AddRange(elelist);              
+            }
+
+            Dictionary<string, int> map = elementMap(allselected);
+
+            //Check whether element in linked file or main doc
+            List<ElementId> tohighlited = new List<ElementId>();
+            foreach (Element el in allselected)
+            {
+                if (el.Document.Equals(this.maindoc))
+                    {
+                        tohighlited.Add(el.Id);
+                    }
+            }
+            if (allselected.Count > tohighlited.Count)
+            {
+                MessageBox.Show("There are " + (allselected.Count - tohighlited.Count).ToString() + " elements in linked file that we cannot select! Please go into linked model to edit");
+            }
+            if (tohighlited.Count == 0) return;
+            uiDoc.Selection.SetElementIds(tohighlited);
+            uiDoc.ShowElements(tohighlited);
+
+            string text = this.my_analysis.Conclusion();
+            text += "\n\n Selection Detail:";
+            foreach (KeyValuePair<string, int> entry in map)
+            {
+                text += "\n Element of " + entry.Key + ": " + entry.Value;
+            }
+            label3.Text = text;
         }
     }
 }

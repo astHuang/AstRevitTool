@@ -62,12 +62,17 @@ namespace AstRevitTool.Core.Analysis
             {
                 double cw_area = 0.0;
                 cw_area = AnalysisUtils.ElementArea(cpanels);
-                Metrics["Total Curtain Walls"] += cw_area;
+                string key = "Total Curtain Walls";
+                Metrics[key] += cw_area;
+                FilteredInfo.matchInfoFromList(this.MyInfo, "::Curtain Wall, Vision Glazing").Area += cw_area;
+                FilteredInfo.matchInfoFromList(this.MyInfo, "Total Curtain Walls").Area += cw_area;
+                FilteredInfo.matchInfoFromList(this.MyInfo, "Total Curtain Walls").FilteredElements.Add(cpanels);
                 MyElements.Add(cpanels);
             }
 
             foreach (Element cpanel in this.AnalyzedElements["Curtain Panels"])
             {
+                MyElements.Add(cpanel);
                 //Autodesk.Revit.DB.Panel panel = cpanel as Autodesk.Revit.DB.Panel;
                 Document doc = cpanel.Document;
                 ElementId pTypeId = cpanel.GetTypeId();
@@ -84,6 +89,13 @@ namespace AstRevitTool.Core.Analysis
                             if (mat.Transparency < 5 || SpandrelMaterialsKeyword.Any(mat.Name.Contains))
                             {
                                 Metrics["::Curtain Wall, Spandrel"] += AnalysisUtils.ElementArea(cpanel);
+                                FilteredInfo.matchInfoFromList(this.MyInfo, "::Curtain Wall, Spandrel").Area += cpanel.LookupParameter("Area").AsDouble();
+                                FilteredInfo.matchInfoFromList(this.MyInfo, "::Curtain Wall, Vision Glazing").Area -= cpanel.LookupParameter("Area").AsDouble();
+                                FilteredInfo.matchInfoFromList(this.MyInfo, "::Curtain Wall, Spandrel").FilteredElements.Add(cpanel);
+                            }
+                            else {
+                                
+                                FilteredInfo.matchInfoFromList(this.MyInfo, "::Curtain Wall, Vision Glazing").FilteredElements.Add(cpanel);
                             }
                         }
                     }
@@ -94,12 +106,12 @@ namespace AstRevitTool.Core.Analysis
                     option.View = this.ActiveView;
                     option.ComputeReferences = true;
                     GeometryElement geoEl = cpanel.get_Geometry(option);
-                    add_spandrel_area(geoEl, SpandrelMaterialsKeyword, doc);
+                    add_spandrel_area(cpanel,geoEl, SpandrelMaterialsKeyword, doc);
                 }
             }
         }
 
-        public void add_spandrel_area(GeometryElement geo, List<string> cands, Document doc)
+        public void add_spandrel_area(Element el,GeometryElement geo, List<string> cands, Document doc)
         {           
             foreach(GeometryObject o in geo)
             {
@@ -114,11 +126,21 @@ namespace AstRevitTool.Core.Analysis
                         area = spandrel? face.Area:area;
                     }
                     Metrics["::Curtain Wall, Spandrel"] += area;
+                    if (area > 0)
+                    {
+                        FilteredInfo.matchInfoFromList(this.MyInfo, "::Curtain Wall, Spandrel").Area += area;
+                        FilteredInfo.matchInfoFromList(this.MyInfo, "::Curtain Wall, Vision Glazing").Area -= area;
+                        FilteredInfo.matchInfoFromList(this.MyInfo, "::Curtain Wall, Spandrel").FilteredElements.Add(el);
+                    }
+                    else
+                    {
+                        FilteredInfo.matchInfoFromList(this.MyInfo, "::Curtain Wall, Vision Glazing").FilteredElements.Add(el);
+                    }
                 }
                 else if(o is GeometryInstance)
                 {
                     GeometryInstance i = o as GeometryInstance;
-                    add_spandrel_area(i.GetInstanceGeometry(i.Transform), cands, doc);
+                    add_spandrel_area(el,i.GetInstanceGeometry(i.Transform), cands, doc);
                 }
             }
         }
@@ -128,6 +150,7 @@ namespace AstRevitTool.Core.Analysis
             List<Tuple<Element, string>> error = new List<Tuple<Element, string>>();
             foreach (Element door in this.AnalyzedElements["Doors"])
             {
+                MyElements.Add(door);
                 Document doc = door.Document;
                 ElementId dTypeId = door.GetTypeId();
                 FamilyInstance fInstance = door as FamilyInstance;
@@ -142,6 +165,7 @@ namespace AstRevitTool.Core.Analysis
                 {
                     d_area = AnalysisUtils.GetInstanceSurfaceAreaMetric(fInstance);
                     MyElements.Add(door);
+                    FilteredInfo.matchInfoFromList(this.MyInfo, "Total Doors").FilteredElements.Add(door);
                 }
                 catch
                 {
@@ -151,11 +175,27 @@ namespace AstRevitTool.Core.Analysis
                 }
 
                 Metrics["Total Doors"] += d_area;
+                FilteredInfo.matchInfoFromList(this.MyInfo, "Total Doors").Area += d_area;
                 if (!totalopening)
                 {
                     double l_area = AnalysisUtils.lighting_area(AnalysisUtils._keys, door);
                     Metrics["::Doors, Transom and Sidelights"] += l_area;
                     Metrics["::Doors, Solid"] += d_area - l_area;
+                    if(l_area > 0.0)
+                    {
+                        FilteredInfo.matchInfoFromList(this.MyInfo, "::Doors, Transom and Sidelights").FilteredElements.Add(door);
+                        FilteredInfo.matchInfoFromList(this.MyInfo, "::Doors, Transom and Sidelights").Area += l_area;
+                        if(d_area - l_area > 0.28 * d_area)
+                        {
+                            FilteredInfo.matchInfoFromList(this.MyInfo, "::Doors, Solid").FilteredElements.Add(door);
+                            FilteredInfo.matchInfoFromList(this.MyInfo, "::Doors, Solid").Area += d_area - l_area;
+                        }
+                    }
+                    else
+                    {
+                        FilteredInfo.matchInfoFromList(this.MyInfo, "::Doors, Solid").FilteredElements.Add(door);
+                        FilteredInfo.matchInfoFromList(this.MyInfo, "::Doors, Solid").Area += d_area;
+                    }
                 }
                 else
                 {
@@ -163,6 +203,8 @@ namespace AstRevitTool.Core.Analysis
                     {
                         Metrics["Total Curtain Walls"] -= d_area;
                     }
+                    FilteredInfo.matchInfoFromList(this.MyInfo, "::Doors, Full Glazing").FilteredElements.Add(door);
+                    FilteredInfo.matchInfoFromList(this.MyInfo, "::Doors, Full Glazing").Area += d_area;
 
                 }
 
@@ -183,6 +225,7 @@ namespace AstRevitTool.Core.Analysis
             List<Tuple<Element, string>> error = new List<Tuple<Element, string>>();
             foreach (Element window in this.AnalyzedElements["Windows"])
             {
+                MyElements.Add(window);
                 double w_area = 0.0;
                 FamilyInstance fInstance = window as FamilyInstance;
                 try
@@ -198,6 +241,8 @@ namespace AstRevitTool.Core.Analysis
                     continue;
                 }
                 Metrics["Windows"] += w_area;
+                FilteredInfo.matchInfoFromList(this.MyInfo, "Windows").FilteredElements.Add(window);
+                FilteredInfo.matchInfoFromList(this.MyInfo, "Windows").Area += w_area;
             }
             if (error.Any())
             {
