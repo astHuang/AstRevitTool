@@ -266,7 +266,10 @@ namespace AstRevitTool.Views
                 foreach(Element el in this.my_analysis.AllAnalyzedElement())
                 {
                     ElementId id = el.Id;
-                    this.maindoc.ActiveView.SetElementOverrides(id, ogs);                  
+                    if (el.Document.Equals(this.maindoc))
+                    {
+                        this.maindoc.ActiveView.SetElementOverrides(id, ogs);
+                    }                
                 }
                 tr.Commit();
             }
