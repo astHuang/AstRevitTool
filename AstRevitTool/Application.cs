@@ -24,9 +24,35 @@ namespace AstRevitTool
 
         private void AddMenu(UIControlledApplication app)
         {
-            RibbonPanel rvtRibbonPanel = app.CreateRibbonPanel("AST Revit");
-            PulldownButtonData data = new PulldownButtonData("Options", "AST Revit");
+            //RibbonPanel rvtRibbonPanel = app.CreateRibbonPanel("AST Revit");
+            //PulldownButtonData data = new PulldownButtonData("Options", "AST Revit");
 
+
+            var panel = app.CreatePanel("AST Revit Toolkit", "Arrowstreet");
+            PulldownButtonData data1 = new PulldownButtonData("Take-off", "Take-off Tools");
+            var item1 = panel.AddItem(data1);
+            var takeoffBtn = item1 as PulldownButton;
+            takeoffBtn.SetImage(RibbonImageUri);
+            takeoffBtn.SetLargeImage(RibbonLargeImageUri);
+            takeoffBtn.AddPushButton(typeof(CmdWWRCalc), "Window-to-wall Ratio");
+            takeoffBtn.AddPushButton(typeof(CmdAssembly), "Exterior Types Take-off");
+            takeoffBtn.AddPushButton(typeof(CmdAssemblyMaterial), "Assembly Decomposition");
+            takeoffBtn.AddPushButton(typeof(CmdMatCalc), "Material Take-off");
+
+            PulldownButtonData data2 = new PulldownButtonData("Export", "Exporting Tools");
+            var item2 = panel.AddItem(data2);
+            var exportBtn = item2 as PulldownButton;
+            exportBtn.SetImage(RibbonImageUri);
+            exportBtn.SetLargeImage(RibbonLargeImageUri);
+            exportBtn.AddPushButton(typeof(CmdColladaExport), "Export 3D model as COLLADA");
+            exportBtn.AddPushButton(typeof(CmdUSDExport), "Export 3D model as USD");
+            exportBtn.AddPushButton(typeof(CmdSvgExport), "Export BOMA schedule with floorplans");
+
+            var showButton = panel.AddPushButton<CmdUpdater>("Update Check");
+            showButton.SetImage(RibbonImageUri);
+            showButton.SetLargeImage(RibbonLargeImageUri);
+
+            /*
             RibbonItem item = rvtRibbonPanel.AddItem(data);
             PulldownButton optionsBtn = item as PulldownButton;
             // Add Icons to main Menu
@@ -41,10 +67,12 @@ namespace AstRevitTool
             optionsBtn.AddPushButton(typeof(CmdAssembly), "Exterior Types Take-off");
             optionsBtn.AddPushButton(typeof(CmdAssemblyMaterial), "Assembly Decomposition");
             optionsBtn.AddPushButton(typeof(CmdMatCalc), "Material Take-off");
+            optionsBtn.AddPushButton(typeof(CmdSvgExport), "Export room plan Svg");
+            optionsBtn.AddPushButton(typeof(CmdColladaExport), "Export model as COLLADA");
             optionsBtn.AddPushButton(typeof(CmdUpdater), "Check Latest Update");
             //optionsBtn.AddPushButton(typeof(CmdLifeCycle), "Beta UI of Life Cycle Analysis");
             //optionsBtn.AddPushButton(typeof(CmdBOMA), "BOMA tool");
-            //optionsBtn.AddPushButton(new PushButtonData("Table Display", "Testing UI Form...", ExecutingAssemblyPath, "AST_Revit_Toolkit.CmdUIDisplay"));
+            //optionsBtn.AddPushButton(new PushButtonData("Table Display", "Testing UI Form...", ExecutingAssemblyPath, "AST_Revit_Toolkit.CmdUIDisplay"));*/
         }
     }
 }

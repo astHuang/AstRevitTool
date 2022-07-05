@@ -3,12 +3,16 @@ using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using Autodesk.Revit.UI.Selection;
+using Autodesk.Revit.DB.Architecture;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Windows.Forms;
 using System.IO;
+using System.Linq;
+using System.Text;
 using AstRevitTool.Core.Analysis;
+using BoundarySegment = Autodesk.Revit.DB.BoundarySegment;
 
 
 namespace AstRevitTool.Core.Export
@@ -16,6 +20,7 @@ namespace AstRevitTool.Core.Export
     class ASTExportUtils
     {
         //file path generator 
+        private const int _target_square_size = 100;
         public static string filepath(Document maindoc, IAnalysis analysis, string format)
         {
             string time = DateTime.Now.ToString(@"MM\/dd\/yyyy h\:mm tt");
@@ -32,12 +37,12 @@ namespace AstRevitTool.Core.Export
         /// <summary>
         /// Export all visible element in current 3D view. Output an instance of context which includes visibility boolean information for all elements.
         /// </summary>
-        public static void ExportView3D(Document maindoc, View3D view3d, UIApplication uiapp, out ElementsVisibleInViewExportContext context_)
+        public static void ExportView3D(Document maindoc, Autodesk.Revit.DB.View view, UIApplication uiapp, out ElementsVisibleInViewExportContext context_)
         {
             ElementsVisibleInViewExportContext context = new ElementsVisibleInViewExportContext(maindoc);
             context.UIApp= uiapp;
             CustomExporter exporter = new CustomExporter(maindoc, context);
-            exporter.Export(view3d);
+            exporter.Export(view);
             context_ = context;
         }
 
@@ -58,8 +63,6 @@ namespace AstRevitTool.Core.Export
             str += "\n---Report Details--- ";
             str += analysis.Report();
             writer.Write(str);
-
-
         }
 
         public static void csvExport(TextWriter writer, IAnalysis analysis)

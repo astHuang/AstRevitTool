@@ -2,6 +2,7 @@
 using AstRevitTool.Views;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
+using Autodesk.Revit.DB.Architecture;
 using Autodesk.Revit.UI;
 using Autodesk.Revit.ApplicationServices;
 using Autodesk.Revit.UI.Selection;
@@ -19,6 +20,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Net;
 using AstRevitTool.Energy;
+using Octokit;
 
 
 namespace AstRevitTool.Commands
@@ -38,7 +40,7 @@ namespace AstRevitTool.Commands
             {
                 ElementsVisibleInViewExportContext context = new ElementsVisibleInViewExportContext(doc);
                 if (doc.ActiveView as View3D != null)
-                    Core.Export.ASTExportUtils.ExportView3D(doc, doc.ActiveView as View3D, uiapp, out context);
+                    Core.Export.ASTExportUtils.ExportView3D(doc, doc.ActiveView, uiapp, out context);
                 else
                     MessageBox.Show("You must be in 3D view to export.");
 
@@ -83,7 +85,7 @@ namespace AstRevitTool.Commands
             {
                 ElementsVisibleInViewExportContext context = new ElementsVisibleInViewExportContext(doc);
                 if (doc.ActiveView as View3D != null)
-                    Core.Export.ASTExportUtils.ExportView3D(doc, doc.ActiveView as View3D, uiapp, out context);
+                    Core.Export.ASTExportUtils.ExportView3D(doc, doc.ActiveView, uiapp, out context);
                 else
                     MessageBox.Show("You must be in 3D view to export.");
 
@@ -129,7 +131,7 @@ namespace AstRevitTool.Commands
             {
                 ElementsVisibleInViewExportContext context = new ElementsVisibleInViewExportContext(doc);
                 if (doc.ActiveView as View3D != null)
-                    Core.Export.ASTExportUtils.ExportView3D(doc, doc.ActiveView as View3D, uiapp, out context);
+                    Core.Export.ASTExportUtils.ExportView3D(doc, doc.ActiveView, uiapp, out context);
                 else
                     MessageBox.Show("You must be in 3D view to export.");
 
@@ -176,7 +178,7 @@ namespace AstRevitTool.Commands
             {
                 ElementsVisibleInViewExportContext context = new ElementsVisibleInViewExportContext(doc);
                 if (doc.ActiveView as View3D != null)
-                    Core.Export.ASTExportUtils.ExportView3D(doc, doc.ActiveView as View3D, uiapp, out context);
+                    Core.Export.ASTExportUtils.ExportView3D(doc, doc.ActiveView, uiapp, out context);
                 else
                     MessageBox.Show("You must be in 3D view to export.");
 
@@ -224,7 +226,7 @@ namespace AstRevitTool.Commands
             {
                 ElementsVisibleInViewExportContext context = new ElementsVisibleInViewExportContext(doc);
                 if (doc.ActiveView as View3D != null)
-                    Core.Export.ASTExportUtils.ExportView3D(doc, doc.ActiveView as View3D, uiapp, out context);
+                    Core.Export.ASTExportUtils.ExportView3D(doc, doc.ActiveView, uiapp, out context);
                 else
                     MessageBox.Show("You must be in 3D view to export.");
 
@@ -270,7 +272,7 @@ namespace AstRevitTool.Commands
             {
                 ElementsVisibleInViewExportContext context = new ElementsVisibleInViewExportContext(doc);
                 if (doc.ActiveView as View3D != null)
-                    Core.Export.ASTExportUtils.ExportView3D(doc, doc.ActiveView as View3D, uiapp, out context);
+                    Core.Export.ASTExportUtils.ExportView3D(doc, doc.ActiveView, uiapp, out context);
                 else
                     MessageBox.Show("You must be in 3D view to export.");
 
@@ -316,7 +318,7 @@ namespace AstRevitTool.Commands
             {
                 ElementsVisibleInViewExportContext context = new ElementsVisibleInViewExportContext(doc);
                 if (doc.ActiveView as View3D != null)
-                    Core.Export.ASTExportUtils.ExportView3D(doc, doc.ActiveView as View3D, uiapp, out context);
+                    Core.Export.ASTExportUtils.ExportView3D(doc, doc.ActiveView, uiapp, out context);
                 else
                     MessageBox.Show("You must be in 3D view to export.");
 
@@ -379,8 +381,9 @@ namespace AstRevitTool.Commands
           ref string message,
           ElementSet elements)
         {
-            string version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
-            string latest = LatestVersion.ToString();
+            Version localVersion = Assembly.GetExecutingAssembly().GetName().Version;
+            Version latestGitHubVersion = LatestVersion;
+            /*
             if (!HasUpdate)
             {
                 TaskDialog.Show("Update check", "This is the latest version! Version: "+ version);
@@ -390,11 +393,32 @@ namespace AstRevitTool.Commands
                 TaskDialog.Show("Update check", "This tool can be updated!Current version is: "+ version+  "\r\n The latest version is: "+latest + "\r\n Opening download link...");
                 string url = string.Concat("https://github.com", GitHubRepo, "/releases/latest");
                 Process.Start(url);
+            }*/
+            //CheckGitHubNewerVersion();
+            //GitHubClient client = new GitHubClient(new ProductHeaderValue("AstRevitTool"));
+            //client.Repository.Release.GetAll("astHuang", "AstRevitTool");
+            int versionComparison = localVersion.CompareTo(latestGitHubVersion);
+            if (versionComparison < 0)
+            {
+                TaskDialog.Show("Update check", "This tool can be updated!Current version is: " + localVersion.ToString() + "\r\n The latest version is: " + latestGitHubVersion.ToString() + "\r\n Opening download link...");
+                string url = string.Concat("https://github.com", GitHubRepo, "/releases/latest");
+                Process.Start(url);
+                //The version on GitHub is more up to date than this local release.
+            }
+            else if (versionComparison > 0)
+            {
+                //This local version is greater than the release version on GitHub.
+                TaskDialog.Show("Update check", "This is a test version that has not been released! Version: " + localVersion.ToString());
+            }
+            else
+            {
+                //This local Version and the Version on GitHub are equal.
+                TaskDialog.Show("Update check", "This is the latest release version! Version: " + localVersion.ToString());
             }
             return Result.Succeeded;
         }
         static readonly Lazy<IDictionary<Version, Uri>> _lazyVersionUrls = new Lazy<IDictionary<Version, Uri>>(() => _GetVersionUrls());
-        public static string GitHubRepo = "astHuang/AstRevitTool";
+        public static string GitHubRepo = "/astHuang/AstRevitTool";
         public static string GitHubRepoName
         {
             get
@@ -410,15 +434,51 @@ namespace AstRevitTool.Commands
                 return _lazyVersionUrls.Value;
             }
         }
+
+        private async System.Threading.Tasks.Task CheckGitHubNewerVersion()
+        {
+            //Get all releases from GitHub
+            //Source: https://octokitnet.readthedocs.io/en/latest/getting-started/
+            GitHubClient client = new GitHubClient(new ProductHeaderValue("AstRevitTool"));
+            IReadOnlyList<Release> releases = await client.Repository.Release.GetAll("astHuang", "AstRevitTool");
+
+            //Setup the versions
+            Version latestGitHubVersion = new Version(releases[0].TagName);
+            Version localVersion = Assembly.GetExecutingAssembly().GetName().Version; //Replace this with your local version. 
+                                                         //Only tested with numeric values.
+
+            //Compare the Versions
+            //Source: https://stackoverflow.com/questions/7568147/compare-version-numbers-without-using-split-function
+            int versionComparison = localVersion.CompareTo(latestGitHubVersion);
+            if (versionComparison < 0)
+            {
+                TaskDialog.Show("Update check", "This tool can be updated!Current version is: " + localVersion.ToString() + "\r\n The latest version is: " + latestGitHubVersion.ToString() + "\r\n Opening download link...");
+                string url = string.Concat("https://github.com", GitHubRepo, "/releases/latest");
+                Process.Start(url);
+                //The version on GitHub is more up to date than this local release.
+            }
+            else if (versionComparison > 0)
+            {
+                //This local version is greater than the release version on GitHub.
+                TaskDialog.Show("Update check", "This is a test version that has not been released! Version: " + localVersion.ToString());
+            }
+            else
+            {
+                //This local Version and the Version on GitHub are equal.
+                TaskDialog.Show("Update check", "This is the latest release version! Version: " + localVersion.ToString());
+            }
+        }
+
         public static Version LatestVersion
         {
             get
             {
+                
                 var v = Assembly.GetExecutingAssembly().GetName().Version;
                 var va = new List<Version>(_VersionUrls.Keys);
-                va.Add(v);
-                va.Sort();
-                return va[va.Count - 1];
+                //va.Add(v);
+                //va.Sort();
+                return va[0];
             }
         }
         public static bool HasUpdate
@@ -447,12 +507,17 @@ namespace AstRevitTool.Commands
             try
             {
                 wrs = wrq.GetResponse();
+                var v = wrs.ResponseUri.ToString().Split('/');
+                var vs = v[v.Length - 1].Split('.');
+                var version = new Version(int.Parse(vs[0]), int.Parse(vs[1]), int.Parse(vs[2]), int.Parse(vs[3]));
+                result.Add(version, wrs.ResponseUri);
             }
             catch (Exception ex)
             {
                 Debug.WriteLine("Error fetching repo: "+ex.Message);
                 return result;
             }
+            /*
             using (var sr = new StreamReader(wrs.GetResponseStream()))
             {
                 string line;
@@ -468,13 +533,24 @@ namespace AstRevitTool.Commands
                         result.Add(v, uri);
                     }
                 }
-            }
+            }*/
             return result;
         }
     }
 
 
-
+    public class CmdUSDExport : IExternalCommand
+    {
+        public Result Execute(
+          ExternalCommandData commandData,
+          ref string message,
+          ElementSet elements)
+        {
+            var result = Result.Cancelled;
+            MessageBox.Show("This function is under development and will be released with Cumulus 3.0!");
+            return result;
+        }
+    }
 
 
     [Transaction(TransactionMode.Manual)]
@@ -510,15 +586,157 @@ namespace AstRevitTool.Commands
 
     }
 
+    [Transaction(TransactionMode.ReadOnly)]
+    public class CmdSvgExport : IExternalCommand
+    {
+        public bool CheckViewSchedule(ViewSchedule vs, Document doc)
+        {
+            bool r1 = SvgExport.getAreaSchemeFromSchedule(vs, doc)!=null;
+            if (!r1) return false;
+            AreaScheme areaScheme = SvgExport.getAreaSchemeFromSchedule(vs, doc);
+            ElementClassFilter filter = new ElementClassFilter(typeof(SpatialElement));
+            IList<Element> allareaonLevel = areaScheme.GetDependentElements(filter).Select(x => doc.GetElement(x)).ToList();
+            
+            foreach(Element el in allareaonLevel)
+            {
+                Area area = el as Area;
+                if (area != null) continue;
+                if (area.LookupParameter(AstRevitTool.Constants.BOMA).AsString() != null)
+                {
+                    return true;
+                }
+            }
+            //MessageBox.Show("Please check if your area schedule contains correct BOMA parameters");
+            //return false;
+            return true;
+        }
+        public Result Execute(ExternalCommandData commandData,ref string message,ElementSet elements)
+        {
 
+            UIApplication uiapp = commandData.Application;
+            UIDocument uidoc = uiapp.ActiveUIDocument;
 
+            var app = uiapp.Application;
+            Document doc = uidoc.Document;
+            ViewSchedule view = doc.ActiveView as ViewSchedule;
+            if (view ==null ) { MessageBox.Show("Please export in a schedule view");
+                return Result.Cancelled; }
+            if(!CheckViewSchedule(view,doc)) return Result.Cancelled;
+
+            List<ElementId> levelIds = SvgExport.uniqueLevelIdsInSchedule(view, doc);
+            Dictionary<string, SvgExport.floorJson> exportList = new Dictionary<string, SvgExport.floorJson>();
+            IList<SvgExport.floorJson> floors = new List<SvgExport.floorJson>();
+            foreach (ElementId level in levelIds)
+            {
+                SvgExport.floorJson fj = SvgExport.levelFromSchedule(view, level, doc);
+                string fileName = doc.Title + "__" + doc.GetElement(level).Name;
+                exportList.Add(fileName, fj);
+                floors.Add(fj);
+            }
+            SvgExport.buildingJson bj = new SvgExport.buildingJson(doc.Title, floors);
+            SaveFileDialog dlg = new SaveFileDialog();
+            dlg.FileName = "BomaViz__"+doc.Title;
+            dlg.DefaultExt = "json";
+            dlg.CheckFileExists = false;
+            dlg.AddExtension = true;
+            dlg.Filter = "JSON files(*.json) | *.json | All files(*.*) | *.* ";
+            if (dlg.ShowDialog() == DialogResult.OK)
+            {
+                string filename = dlg.FileName;
+                StreamWriter sw = new StreamWriter(filename);
+                sw.Write(bj.toJsonString());
+                sw.Close();
+                string msg = "JSON file is saved! File location: " + dlg.FileName;
+                string title = "Successfully saved file!";
+                MessageBox.Show(msg, title);
+                return Result.Succeeded;
+                //rc = Result.Succeeded;
+            }
+            //string defaultPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            //string defaultName = Path.ChangeExtension("BOMA__"+doc.Title, ".json");
+            //StreamWriter sw = new StreamWriter(Path.Combine(defaultPath, defaultName));
+            //SvgExport.buildingJson bj = new SvgExport.buildingJson(doc.Title, floors);
+            //sw.Write(bj.toJsonString());
+            //sw.Close();
+
+            /*
+            foreach (KeyValuePair<string, SvgExport.floorJson> item in exportList)
+            {
+                defaultPath = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                defaultName = Path.ChangeExtension(item.Key,".json");
+                sw = new StreamWriter(Path.Combine(defaultPath, defaultName));
+                sw.Write(item.Value.toJsonString());
+                //sw.WriteLine("\n");
+                //sw.Close();
+            }
+            //sw.Close();*/
+
+            return Result.Cancelled;
+        }
+    }
+
+    [Transaction(TransactionMode.ReadOnly)]
+    public class CmdColladaExport : IExternalCommand
+    {
+        public Result Execute(
+          ExternalCommandData commandData,
+          ref string message,
+          ElementSet elements)
+        {
+            UIApplication application = commandData.Application;
+            UIDocument activeUIDocument = commandData.Application.ActiveUIDocument;
+            var app = application.Application;
+            var doc = activeUIDocument.Document;
+            Result rc;
+            if (doc.ActiveView as View3D != null)
+            {
+                SaveFileDialog dlg = new SaveFileDialog();
+                dlg.FileName = doc.Title;
+                dlg.DefaultExt = "dae";
+                dlg.CheckFileExists = false;
+                dlg.AddExtension = true;
+                dlg.Filter = "COLLADA files(*.dae) | *.dae | All files(*.*) | *.* ";
+                if (dlg.ShowDialog() == DialogResult.OK)
+                {
+                    string filename = dlg.FileName;
+                    ExportView3D(doc, doc.ActiveView,filename);
+                    string msg = "COLLADA file is saved! File location: " + dlg.FileName;
+                    string title = "Successfully saved file!";
+                    MessageBox.Show(msg, title);
+                    rc = Result.Succeeded;
+                }
+                else { rc = Result.Cancelled; }
+            }              
+            else
+                MessageBox.Show("You must be in 3D view to export.");
+            
+            rc = Result.Cancelled;
+            return rc;
+        }
+
+        internal void ExportView3D(Document document, Autodesk.Revit.DB.View view3D,string filename)
+        {
+            ColladaExportContext context = new ColladaExportContext(document);
+            context.filename = filename;
+
+            // Create an instance of a custom exporter by giving it a document and the context.
+            CustomExporter exporter = new CustomExporter(document, context);
+
+            //    Note: Excluding faces just excludes the calls, not the actual processing of
+            //    face tessellation. Meshes of the faces will still be received by the context.
+
+            exporter.ShouldStopOnError = false;
+
+            exporter.Export(view3D);
+        }
+    }
     [Transaction(TransactionMode.Manual)]
     public class CmdBOMA : IExternalCommand
     {
         public static DialogResult InputBox(string title, string promptText, ref string value)
         {
             System.Windows.Forms.Form form = new System.Windows.Forms.Form();
-            Label label = new Label();
+            System.Windows.Forms.Label label = new System.Windows.Forms.Label();
             System.Windows.Forms.TextBox textBox = new System.Windows.Forms.TextBox();
             Button buttonOk = new Button();
             Button buttonCancel = new Button();

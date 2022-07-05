@@ -10,5 +10,9 @@ namespace AstRevitTool
     {
         internal static string urlMain => "https://www.arrowstreet.com/";
         internal static string emailSupport => "marketing@arrowstreet.com";
+
+        internal const string BOMA = "BOMA Space Classification";
+
+        internal const string EXCLUSION = "BOMA Rentable Exclusion";
     }
 }

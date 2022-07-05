@@ -124,6 +124,7 @@ namespace AstRevitTool.Views
             // 
             // m_bnOK
             // 
+            this.m_bnOK.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.m_bnOK.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.m_bnOK.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.m_bnOK.Location = new System.Drawing.Point(16, 573);
@@ -203,6 +204,7 @@ namespace AstRevitTool.Views
             // 
             // button2
             // 
+            this.button2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.button2.Location = new System.Drawing.Point(165, 573);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(137, 27);
@@ -213,6 +215,7 @@ namespace AstRevitTool.Views
             // 
             // button1
             // 
+            this.button1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.button1.Location = new System.Drawing.Point(16, 527);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(124, 27);
@@ -223,6 +226,7 @@ namespace AstRevitTool.Views
             // 
             // button3
             // 
+            this.button3.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.button3.Location = new System.Drawing.Point(165, 527);
             this.button3.Name = "button3";
             this.button3.Size = new System.Drawing.Size(137, 27);

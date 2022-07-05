@@ -49,7 +49,7 @@ namespace AstRevitTool.Energy
                 View activeView = doc.ActiveView;
                 ElementsVisibleInViewExportContext context = new ElementsVisibleInViewExportContext(doc);
                 if (activeView as View3D != null)
-                    Core.Export.ASTExportUtils.ExportView3D(doc, doc.ActiveView as View3D, uiapp, out context);
+                    Core.Export.ASTExportUtils.ExportView3D(doc, doc.ActiveView, uiapp, out context);
                 else
                     MessageBox.Show("You must be in 3D view to export.");
 
