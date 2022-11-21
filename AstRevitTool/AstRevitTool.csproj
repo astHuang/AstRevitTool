@@ -35,7 +35,7 @@
         <DefineConstants>$(DefineConstants);R22</DefineConstants>
     </PropertyGroup>
     <PropertyGroup>
-        <Version>2.2.1.1</Version>
+        <Version>2.3.0.5</Version>
         <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     </PropertyGroup>
@@ -83,14 +83,19 @@
 
     <ItemGroup>
         <PackageReference Include="Autoupdater.NET.Official" Version="1.7.0" />
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.0.0" />
         <PackageReference Include="LiveCharts.Wpf" Version="0.9.7" />
         <PackageReference Include="Microsoft.Office.Interop.Excel" Version="15.0.4795.1000" />
+        <PackageReference Include="MvvmLight" Version="5.4.1.1" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
         <PackageReference Include="Nice3point.Revit.Extensions" Version="$(RevitVersion).*" />
         <PackageReference Include="Octokit" Version="0.50.0" />
+        <PackageReference Include="OfficeOpenXml.Extends" Version="1.0.6" />
         <PackageReference Include="PdfSharp" Version="1.50.5147" />
-        <PackageReference Include="Revit_All_Main_Versions_IFC_x64" Version="2022.0.0" />
-        <PackageReference Include="Revit_API_x64" Version="$(RevitVersion).*" />
+        <PackageReference Include="Revit_All_Main_Versions_API_x64" Version="$(RevitVersion).*" />
+        <PackageReference Include="Revit_All_Main_Versions_IFC_x64" Version="$(RevitVersion).*" />
+        <PackageReference Include="Syncfusion.SfGrid.WPF" Version="20.2.0.50" />
+        <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -152,6 +157,12 @@
       <Reference Include="CarboLifeAPI">
         <HintPath>ext\CarboLifeAPI.dll</HintPath>
       </Reference>
+      <Reference Include="SharpGLTF.Core">
+        <HintPath>libs\SharpGLTF\SharpGLTF.Core.dll</HintPath>
+      </Reference>
+      <Reference Include="SharpGLTF.Toolkit">
+        <HintPath>libs\SharpGLTF\SharpGLTF.Toolkit.dll</HintPath>
+      </Reference>
       <Reference Include="System.Reflection.Context" />
       <Reference Include="System.Windows.Forms" />
       <Reference Include="WindowsFormsIntegration" />
@@ -184,5 +195,9 @@
         </ItemGroup>
 
         <Copy SourceFiles="@(AddinFiles)" DestinationFolder="$(AppData)\Autodesk\Revit\Addins\$(RevitVersion)\%(RecursiveDir)" Condition="$(Configuration.Contains('Debug'))" />
+    </Target>
+
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+      <Exec Command="&quot;C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\signtool.exe&quot; sign /f &quot;C:\Users\huang\source\repos\AstRevitTool\arrowstreetSPC.pfx&quot; /t http://timestamp.comodoca.com/authenticode /p &quot;arrowstreet&quot; &quot;$(TargetPath)&quot;" />
     </Target>
 </Project>

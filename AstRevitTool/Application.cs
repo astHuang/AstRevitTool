@@ -1,6 +1,8 @@
 ﻿using AstRevitTool.Commands;
 using Autodesk.Revit.UI;
 using AutoUpdaterDotNET;
+using AstRevitTool.Masterclass.Dockable;
+using Autodesk.Revit.DB.Events;
 
 namespace AstRevitTool
 {
@@ -38,19 +40,29 @@ namespace AstRevitTool
             takeoffBtn.AddPushButton(typeof(CmdAssembly), "Exterior Types Take-off");
             takeoffBtn.AddPushButton(typeof(CmdAssemblyMaterial), "Assembly Decomposition");
             takeoffBtn.AddPushButton(typeof(CmdMatCalc), "Material Take-off");
+            //takeoffBtn.AddPushButton(typeof(CmdCustomAnalysis), "Custom Analysis");
 
             PulldownButtonData data2 = new PulldownButtonData("Export", "Exporting Tools");
             var item2 = panel.AddItem(data2);
             var exportBtn = item2 as PulldownButton;
             exportBtn.SetImage(RibbonImageUri);
             exportBtn.SetLargeImage(RibbonLargeImageUri);
-            exportBtn.AddPushButton(typeof(CmdColladaExport), "Export 3D model as COLLADA");
-            exportBtn.AddPushButton(typeof(CmdUSDExport), "Export 3D model as USD");
+            exportBtn.AddPushButton(typeof(CmdColladaExport), "Export 3D model for Cumulus");
+            //exportBtn.AddPushButton(typeof(CmdUSDExport), "Export 3D model as GLTF");
             exportBtn.AddPushButton(typeof(CmdSvgExport), "Export BOMA schedule with floorplans");
+            exportBtn.AddPushButton(typeof(CmdBOMA), "Export BOMA standadard Excel Sheet");
+            exportBtn.AddPushButton(typeof(CmdUnitMatrix), "Export Unit Matrix Excel Sheet");
 
             var showButton = panel.AddPushButton<CmdUpdater>("Update Check");
             showButton.SetImage(RibbonImageUri);
             showButton.SetLargeImage(RibbonLargeImageUri);
+
+            //var dockableButton = panel.AddPushButton<CmdDocakble>("Dockable panel");
+            //showButton.SetImage(RibbonImageUri);
+            //showButton.SetLargeImage(RibbonLargeImageUri);
+
+            //DockablePanelUtils.RegisterDockablePanel(app);
+            //app.ControlledApplication.DocumentChanged += OnDocumentChanged;
 
             /*
             RibbonItem item = rvtRibbonPanel.AddItem(data);
@@ -73,6 +85,12 @@ namespace AstRevitTool
             //optionsBtn.AddPushButton(typeof(CmdLifeCycle), "Beta UI of Life Cycle Analysis");
             //optionsBtn.AddPushButton(typeof(CmdBOMA), "BOMA tool");
             //optionsBtn.AddPushButton(new PushButtonData("Table Display", "Testing UI Form...", ExecutingAssemblyPath, "AST_Revit_Toolkit.CmdUIDisplay"));*/
+        }
+
+        private void OnDocumentChanged(object sender, DocumentChangedEventArgs e)
+        {
+            var Document = e.GetDocument();
+
         }
     }
 }

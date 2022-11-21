@@ -23,8 +23,9 @@ namespace AstRevitTool.Core.Export
         private const int _target_height_size = 600;
         private const int _target_width_size = 900;
         private const string formatSpecification = "0=+9.3f";
-        private const double curveScale = 5;
+        private const double curveScale = 1;
         private const double svgScale = 0.95;
+        private XYZ PMID = 100 * XYZ.BasisX + 100 * XYZ.BasisY + 100 * XYZ.BasisZ;
         public const string boma = AstRevitTool.Constants.BOMA;
         static BoundingBoxXYZ MergeBoundingBoxXyz(
   BoundingBoxXYZ boundingBoxXyz0,
@@ -84,17 +85,16 @@ namespace AstRevitTool.Core.Export
             public string viewBox = "0 0 " + _target_width_size.ToString() + " " + _target_height_size.ToString();
             public int boundaryArea = 0;
             public Newtonsoft.Json.Linq.JRaw[] locations;
-            public floorJson(string label, string[] locations)
-            {
-                this.locations = locations.Select(x => new Newtonsoft.Json.Linq.JRaw(x)).ToArray();
-                this.label = label;
-            }
+            private List<locationJson> _locations;
+            public string viewName = "";
+            public string[] floorPlanLines;
 
             public floorJson(string label, IEnumerable<locationJson> locations)
             {
                 this.label = label;
                 this.boundaryArea = locations.Sum(x => x.area);
                 this.locations = locations.Select(x => new Newtonsoft.Json.Linq.JRaw(x.toJsonString())).ToArray();
+                this._locations = locations.ToList();
             }
 
             public string toJsonString()
@@ -111,7 +111,10 @@ namespace AstRevitTool.Core.Export
             public int area = 0;
             public string space_id = "";
             public string boma_exclusion = "False";
+            public locationJson()
+            {
 
+            }
             public locationJson(string name,string id,string path,int area,string space_id,string exclusion)
             {
                 this.name = name;
@@ -183,79 +186,6 @@ namespace AstRevitTool.Core.Export
             }
             return allcrvs;
         }
-        public List<List<string>> ListChopUnevenly(List<string> scaled, List<int> boundLens)
-        {
-            List<List<string>> chopped = new List<List<string>>();
-            int count = 0;
-            int max = scaled.Count;
-            int end = 0;
-            foreach(int num in boundLens)
-            {
-                if(count+num> max)
-                {
-                    end = max;
-                }
-                else
-                {
-                    end = count + num;
-                }
-                List<string> sliced = scaled.GetRange(count, end - count);
-                chopped.Add(sliced);
-                count = end;
-            }
-            return chopped;
-        }
-        public void scaleRoomCurves(List<Area> areas)
-        {
-            List<List<Curve>> rb = roomsBounds(areas);
-            List<List<XYZ>> cpts = new List<List<XYZ>>();
-            List<List<double>> curveX = new List<List<double>>();
-            List<List<double>> curveNY = new List<List<double>>();
-            List<int> boundLens = new List<int>();
-            List<int> curveLen2 = new List<int>();
-            List<int> curveLen = new List<int>();
-            List<string> scaled = new List<string>();
-            foreach(var curves in rb)
-            {
-                int boundLen = curves.Count;
-                boundLens.Add(boundLen);
-                XYZ refPT = new XYZ();
-                List<XYZ> subpts = new List<XYZ>();
-                foreach(Curve curve in curves)
-                {
-                    XYZ point = curve.GetEndPoint(0);
-                    string scaledPt = SvgExport.GetSvgPointFrom(point, refPT, curveScale);
-                    scaled.Add(scaledPt);
-                    point *= curveScale;
-                    subpts.Add(point);
-                }
-                cpts.Add(subpts);
-            }
-
-            var curveStartPoint = ListChopUnevenly(scaled, boundLens);
-
-            List<string[]> pairedXY = new List<string[]>();
-            foreach(List<XYZ> sublist in cpts)
-            {
-                List<double> Xs = new List<double>();
-                List<double> Ys = new List<double>();
-                foreach (XYZ point in sublist)
-                {
-                    double roundX = Math.Round(point.X, 3);
-                    double roundY = Math.Round(point.Y, 3);
-                    double negativeY = -roundY;
-                    Xs.Add(roundX);
-                    Ys.Add(negativeY);
-                    string X = roundX.ToString("F3");
-                    string Y = negativeY.ToString("F3");
-                    pairedXY.Add(new string[] { X, Y });
-                }
-                curveLen.Add(sublist.Count);
-                curveLen.Add(sublist.Count*2);
-                curveX.Add(Xs);
-                curveNY.Add(Ys);
-            }
-        }
         /// Return an SVG representation of the
         /// given XYZ point scaled, offset and
         /// Y flipped to the target square size.
@@ -278,6 +208,17 @@ namespace AstRevitTool.Core.Export
             x += _target_width_size / 2;
             y += _target_height_size / 2;
             return x.ToString() + " " + y.ToString();
+        }
+
+        public static string GetSvgPoint2Decimal(XYZ p, XYZ pmid, double scale)
+        {
+            p -= pmid;
+            p *= scale;
+            double x = p.X;
+            double y = -p.Y;
+            x += _target_width_size / 2;
+            y += _target_height_size / 2;
+            return x.ToString("0.##") + " " + y.ToString("0.##");
         }
 
         public static string svgPathFromArea(Area area, BoundingBoxXYZ bb)
@@ -314,9 +255,17 @@ namespace AstRevitTool.Core.Export
             }
             return doc.GetElement(areascheme) as AreaScheme;
         }
+
+        public static ViewPlan viewFromLevel(Level l)
+        {
+            ElementId viewId = l.FindAssociatedPlanViewId();
+            if (viewId == null) return null;
+            return l.Document.GetElement(viewId) as ViewPlan;
+        }
             
         public static floorJson levelFromSchedule(ViewSchedule vs,ElementId levelId,Document doc)
         {
+            Level l = doc.GetElement(levelId) as Level;
             ElementLevelFilter filter = new ElementLevelFilter(levelId);
             ElementClassFilter filter2= new ElementClassFilter(typeof(SpatialElement));
             LogicalAndFilter lf = new LogicalAndFilter(filter,filter2);
@@ -324,11 +273,26 @@ namespace AstRevitTool.Core.Export
             IList<Element> allareaonLevel = areaScheme.GetDependentElements(lf).Select(x => doc.GetElement(x)).ToList();           
             FilteredElementCollector viewplans = new FilteredElementCollector(doc).OfClass(typeof(ViewPlan));
             IList<Element> vps = viewplans.ToElements();
-            ViewPlan vp = vps[0] as ViewPlan;
-
+            ViewPlan vp = viewFromLevel(l);
+            if(vp == null)
+            {
+                vp = viewplans.ToList()[0] as ViewPlan;
+                if(vp == null)
+                {
+                    MessageBox.Show("Cannot retrieve floorplan from Level " + l.Name);
+                    return null;
+                }
+            }
+            IList<XYZ> linePts;
+            LineDrawings2DExportContext context = new LineDrawings2DExportContext(out linePts);
+            CustomExporter exporter = new CustomExporter(doc, context);
+            exporter.Export2DIncludingAnnotationObjects = false;
+            exporter.Export2DGeometricObjectsIncludingPatternLines = false;
+            exporter.ShouldStopOnError = true;
+            exporter.Export(vp);
+            string[] floorPlanLines = GetSvgLinesFromPoints(linePts, vp,doc.Application.ShortCurveTolerance);
             //BoundingBoxXYZ bb = vp.get_BoundingBox(vp);
-            BoundingBoxXYZ bb = new BoundingBoxXYZ();
-            Level l = doc.GetElement(levelId) as Level;
+            BoundingBoxXYZ bb = vp.CropBox == null ? new BoundingBoxXYZ() : vp.CropBox; ;
             string label = l.Name;
             List<locationJson> locations = new List<locationJson>();
             foreach(Element el in allareaonLevel)
@@ -344,9 +308,62 @@ namespace AstRevitTool.Core.Export
                 }
             }
             floorJson fj = new floorJson(label, locations);
+            fj.viewName = vp.Name;
+            fj.floorPlanLines = floorPlanLines;
             return fj;
 
         }
+        /// <summary>
+        /// Generate single lines in svg format
+        /// Input points are separated in group of two
+        /// </summary>
+        public static string[] GetSvgLinesFromPoints(IList<XYZ> pts, Autodesk.Revit.DB.View view,double tolerance)
+        {
+            //StringBuilder s = new StringBuilder();
+            Plane plane = Util.getAppropriatePlane(view);
+            BoundingBoxXYZ bb = view.CropBox == null? new BoundingBoxXYZ():view.CropBox;           
+            XYZ pmin = bb.Min;
+            XYZ pmax = bb.Max;
+            XYZ vsize = pmax - pmin;
+            XYZ pmid = pmin + 0.5 * vsize;
+            List<string> lines = new List<string>();
+            double scale = curveScale;
+            if (plane != null)
+            {
+                for(int i=0; i<pts.Count; i++)
+                {
+                    StringBuilder s = new StringBuilder();
+                    UV uvStart, uvEnd;
+                    double distance = double.MaxValue;
+                    plane.Project(pts[i], out uvStart, out distance);
+                    plane.Project(pts[i+1], out uvEnd, out distance);
+
+                    XYZ projectionStart;
+                    XYZ projectionEnd;
+
+                    projectionStart = uvStart.U * plane.XVec + uvStart.V * plane.YVec + plane.Origin;
+                    projectionEnd = uvEnd.U * plane.XVec + uvEnd.V * plane.YVec + plane.Origin;
+
+                    
+                    if (projectionStart.DistanceTo(projectionEnd) < 0.5)
+                    {
+                        i++;
+                        continue;
+                    }
+
+                    string svgstart = GetSvgPoint2Decimal(projectionStart,pmid,scale);
+                    string svgend = GetSvgPoint2Decimal(projectionEnd,pmid,scale);
+
+                    s.Append(svgstart);
+                    s.Append(' ');
+                    s.Append(svgend);
+                    lines.Add(s.ToString());
+                    i++;
+                }
+            }
+            return lines.Distinct().ToArray();
+        }
+        
         /// <summary>
         /// Generate and return an SVG path definition to
         /// represent the given room boundary loop, scaled 
@@ -358,13 +375,12 @@ namespace AstRevitTool.Core.Export
           BoundingBoxXYZ bb,
           IList<BoundarySegment> loop)
         {
-            // Determine scaling and offsets to transform
-            // from bounding box to (0,0)-(100,100).
-            bb = new BoundingBoxXYZ();
+            
             XYZ pmin = bb.Min;
             XYZ pmax = bb.Max;
             XYZ vsize = pmax - pmin;
             XYZ pmid = pmin + 0.5 * vsize;
+            //XYZ pmid = new XYZ(0, 0, 0);
 
             double scale = curveScale;
 
@@ -379,6 +395,7 @@ namespace AstRevitTool.Core.Export
             foreach (BoundarySegment seg in loop)
             {
                 Curve curve = seg.GetCurve();
+                IList<XYZ> pts = curve.Tessellate();
 
                 // Todo: handle non-linear curve.
                 // Especially: if two long lines have a 
@@ -395,8 +412,12 @@ namespace AstRevitTool.Core.Export
                     s.Append("M"
                       + GetSvgPointFrom(p, pmid, scale));
                 }
-                s.Append("L"
-                  + GetSvgPointFrom(q, pmid, scale));
+                for(int i = 1; i < pts.Count; i++)
+                {
+                    s.Append("L"
+                  + GetSvgPointFrom(pts[i], pmid, scale));
+                }
+                //s.Append("L"+ GetSvgPointFrom(q, pmid, scale));
             }
             s.Append("Z");
             return s.ToString();

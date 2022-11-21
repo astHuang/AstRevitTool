@@ -14,5 +14,6 @@ namespace AstRevitTool
         internal const string BOMA = "BOMA Space Classification";
 
         internal const string EXCLUSION = "BOMA Rentable Exclusion";
+        internal const string SCRIPT_FOLDER = "W:\\5X\\50113_Data_Science\\04_InternalTools\\02-ASTRevitTool";
     }
 }

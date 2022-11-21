@@ -299,7 +299,7 @@ namespace AstRevitTool.Core.Analysis
 
         public override string Type()
         {
-            return "Window-to-Wall Ratio Analysis";
+            return "Window-to-Wall Ratio";
         }
 
         public override Dictionary<string, double> ResultList()

@@ -23,6 +23,11 @@ namespace AstRevitTool
 {
     internal class Utils
     {
+
+        internal static string ReplaceInvalidChars(string filename)
+        {
+            return string.Join("_", filename.Split(Path.GetInvalidFileNameChars()));
+        }
         internal static void selectElements(UIDocument uiDoc, List<Element> elems)
         {
             try
@@ -71,6 +76,26 @@ namespace AstRevitTool
                 doc.ActiveView.IsolateElementsTemporary(elems);
             }
             catch { }
+        }
+
+        public static BitmapImage LoadImage(Assembly a, string name)
+        {
+            var img = new BitmapImage();
+            try
+            {
+                var resourceName = a.GetManifestResourceNames().FirstOrDefault(x => x.Contains(name));
+                var stream = a.GetManifestResourceStream(resourceName);
+
+                img.BeginInit();
+                img.StreamSource = stream;
+                img.EndInit();
+            }
+            catch (Exception e)
+            {
+                // ignored
+            }
+
+            return img;
         }
 
         internal static double area(Element elem,Material mat)

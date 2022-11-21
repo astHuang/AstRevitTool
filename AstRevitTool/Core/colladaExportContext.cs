@@ -8,562 +8,557 @@ using Autodesk.Revit.DB;
 using System.Windows.Forms;
 using System.Drawing;
 using System.Text;
+using AstRevitTool.Core.Export;
 #endregion
 
 namespace AstRevitTool.Core
 {
-    class ColladaExportContext : IExportContext
+    internal class ColladaExportContext : IExportContext
     {
-        private Document exportedDocument = null;
-
-        public string filename = "";
-        public uint CurrentPolymeshIndex { get; set; }
-
-        ElementId CurrentElementId
-        {
-            get
-            {
-                return (elementStack.Count > 0)
-                  ? elementStack.Peek()
-                  : ElementId.InvalidElementId;
-            }
-        }
-
-        Element CurrentElement
-        {
-            get
-            {
-                return exportedDocument.GetElement(
-                  CurrentElementId);
-            }
-        }
-
-        Transform CurrentTransform
-        {
-            get
-            {
-                return transformationStack.Peek();
-            }
-        }
-
-        private bool isCancelled = false;
-
-        Stack<ElementId> elementStack = new Stack<ElementId>();
-
+        private OptionsExporter exportingOptions;
+        private Options geometryOptions;
+        private Document mainDocument;
         private Stack<Transform> transformationStack = new Stack<Transform>();
+        private Stack<Document> documentStack = new Stack<Document>();
+        private bool hasGeometry;
+        private int modelNodeId;
+        private Dictionary<int, Transform> modelNodes = new Dictionary<int, Transform>();
+        private RevitMaterialManager materialManager;
+        private ulong currentDocumentUID = ulong.MaxValue;
+        private ulong currentMaterialUID = ulong.MaxValue;
+        private Dictionary<ulong, IList<IRevitMesh>> materialIdToMeshes = new Dictionary<ulong, IList<IRevitMesh>>();
+        private IList<IRevitMesh> currentMeshes;
+        private int nSolids;
+        protected Stopwatch clock;
+        protected ulong nVertices;
 
-        ElementId currentMaterialId = ElementId.InvalidElementId;
+        public bool IsSolidsPass { get; set; }
 
-        StreamWriter streamWriter = null;
+        public bool HasSolids { get; private set; }
 
-        Dictionary<uint, ElementId> polymeshToMaterialId = new Dictionary<uint, ElementId>();
+        public string LinkDescription { get; private set; }
 
-        public ColladaExportContext(Document document)
+        public string InstanceDescription { get; private set; }
+
+        public ColladaExportContext(Document document, OptionsExporter exportingOptions)
         {
-            this.exportedDocument = document;
-            transformationStack.Push(Transform.Identity);
+            this.mainDocument = document;
+            this.exportingOptions = exportingOptions;
+            this.materialManager = new RevitMaterialManager();
+            this.materialManager.Init(document);
+            this.materialManager.MergeIfcMaterials = exportingOptions.MergeIfcMaterials;
+            this.materialManager.MergeLinkedMaterials = exportingOptions.MergeLinkedMaterials;
+            this.materialManager.ColladaExporterMode = true;
+            this.geometryOptions = this.mainDocument.Application.Create.NewGeometryOptions();
+            this.geometryOptions.ComputeReferences = true;
+            this.geometryOptions.DetailLevel = (ViewDetailLevel)3;
         }
 
+        public void WriteFile(string thumbFile)
+        {
+            if (this.materialIdToMeshes.Count<KeyValuePair<ulong, IList<IRevitMesh>>>() > 0)
+            {
+                this.clock = new Stopwatch();
+                this.clock.Start();
+                int count = this.materialIdToMeshes.Count;
+                List<MaterialInfo> usedMaterials = new List<MaterialInfo>(count);
+                Dictionary<ulong, MeshInfo> materialIdToMergedMeshes = new Dictionary<ulong, MeshInfo>(count);
+                foreach (ulong key in this.materialIdToMeshes.Keys)
+                {
+                    if (this.materialIdToMeshes[key].Count > 0)
+                    {
+                        MaterialInfo material = this.materialManager.GetMaterial(key);
+                        usedMaterials.Add(material);
+                        materialIdToMergedMeshes[key] = new MeshInfo()
+                        {
+                            materialUID = key,
+                            matInfo = material
+                        };
+                    }
+                }
+                Trace.WriteLine(string.Format("\n\nExporter::Collect surfaces: Number of surfaces:{0}\n\n", (object)materialIdToMergedMeshes.Count));
+                Parallel.Invoke((Action)(() =>
+                {
+                    if (!this.exportingOptions.CollectTextures)
+                        return;
+                    this.CollectTextures(usedMaterials);
+                    this.MakeTexturePathsRelative(usedMaterials);
+                }), (Action)(() => Parallel.ForEach<KeyValuePair<ulong, IList<IRevitMesh>>>((IEnumerable<KeyValuePair<ulong, IList<IRevitMesh>>>)this.materialIdToMeshes, (Action<KeyValuePair<ulong, IList<IRevitMesh>>>)(it =>
+                {
+                    ulong key = it.Key;
+                    IList<IRevitMesh> revitMeshList = it.Value;
+                    if (revitMeshList.Count == 0)
+                        return;
+                    MaterialInfo material = this.materialManager.GetMaterial(key);
+                    MeshInfo meshInfo = materialIdToMergedMeshes[key];
+                    int nVertices = 0;
+                    int nIndices = 0;
+                    foreach (IRevitMesh revitMesh in (IEnumerable<IRevitMesh>)revitMeshList)
+                    {
+                        nVertices += revitMesh.GetVerticesCount();
+                        nIndices += revitMesh.GetIndicesCount();
+                    }
+                    meshInfo.Resize(nVertices, nIndices, material.NeedSecondUV() ? 2 : 1);
+                    int verticesOfs = 0;
+                    int indicesOfs = 0;
+                    foreach (IRevitMesh revitMesh in (IEnumerable<IRevitMesh>)revitMeshList)
+                    {
+                        revitMesh.MergeMesh(meshInfo, material, false, ref verticesOfs, ref indicesOfs);                       
+                    }
+                    revitMeshList.Clear();
+                }))));
+                Trace.WriteLine(string.Format("Exporter::Merge surfaces / collect textures {0}[ms]", (object)this.clock.ElapsedMilliseconds));
+                this.clock.Restart();
+                new ColladaWriter(usedMaterials, materialIdToMergedMeshes, this.modelNodes, this.exportingOptions).Write(this.exportingOptions.FilePath, thumbFile);
+                Trace.WriteLine(string.Format("Exporter::Write file {0}[ms]", (object)this.clock.ElapsedMilliseconds));
+            }
+            this.clock = (Stopwatch)null;
+            this.modelNodes.Clear();
+            this.materialIdToMeshes.Clear();
+            this.currentMeshes = (IList<IRevitMesh>)null;
+            this.mainDocument = (Document)null;
+            this.transformationStack.Clear();
+            this.documentStack.Clear();
+            this.currentDocumentUID = ulong.MaxValue;
+            this.currentMaterialUID = ulong.MaxValue;
+            this.materialManager.Clear();
+        }
+
+        public string GetExceptionRaport()
+        {
+            string exceptionRaport = "";
+            if (this.LinkDescription != "")
+                exceptionRaport += this.LinkDescription;
+            if (this.InstanceDescription != "")
+                exceptionRaport = exceptionRaport + (exceptionRaport != "" ? "\n" : "") + this.InstanceDescription;
+            if (exceptionRaport != "")
+                exceptionRaport = "\nAt " + exceptionRaport;
+            return exceptionRaport;
+        }
+
+        protected void SelectCurrentDocument()
+        {
+            this.currentDocumentUID = ulong.MaxValue;
+            this.currentMaterialUID = ulong.MaxValue;
+            if (this.documentStack.Count <= 0)
+                return;
+            this.currentDocumentUID = (ulong)((long)(ulong)((object)this.documentStack.Peek()).GetHashCode() << 32 & -4294967296L);
+        }
+
+        protected void SelectCurrentMaterial(ulong materialUID)
+        {
+            this.currentMaterialUID = materialUID;
+            if (this.materialIdToMeshes.TryGetValue(materialUID, out this.currentMeshes))
+                return;
+            this.currentMeshes = (IList<IRevitMesh>)new List<IRevitMesh>(100);
+            this.materialIdToMeshes.Add(this.currentMaterialUID, this.currentMeshes);
+        }
+
+        protected ulong GetElementUID(ElementId eId) => this.currentDocumentUID | (ulong)eId.IntegerValue & (ulong)uint.MaxValue;
+
+        private void MakeTexturePathsRelative(List<MaterialInfo> usedMaterials)
+        {
+            foreach (MaterialInfo materialInfo in usedMaterials.Where<MaterialInfo>((Func<MaterialInfo, bool>)(matInfo => matInfo.ColorTexture.Path != string.Empty)))
+                materialInfo.ColorTexture.Path = "textures\\" + RevitMaterialManager.CleanPath(Path.GetFileName(materialInfo.ColorTexture.Path), this.exportingOptions.UnicodeSupport);
+        }
+
+        private void CollectTextures(List<MaterialInfo> usedMaterials)
+        {
+            if (usedMaterials.Select<MaterialInfo, string>((Func<MaterialInfo, string>)(o => o.ColorTexture.Path)).Distinct<string>().Count<string>() == 0)
+                return;
+            string path = Path.GetDirectoryName(this.exportingOptions.FilePath) + "\\textures";
+            try
+            {
+                Directory.CreateDirectory(path);
+            }
+            catch (Exception ex)
+            {
+            }
+            foreach (string str1 in usedMaterials.Select<MaterialInfo, string>((Func<MaterialInfo, string>)(o => o.ColorTexture.Path)).Distinct<string>())
+            {
+                if (!(str1 == ""))
+                {
+                    string str2 = path + "\\" + RevitMaterialManager.CleanPath(Path.GetFileName(str1), this.exportingOptions.UnicodeSupport);
+                    if (!File.Exists(str2))
+                    {
+                        try
+                        {
+                            File.Copy(str1, str2);
+                        }
+                        catch (Exception ex)
+                        {
+                        }
+                    }
+                }
+            }
+        }
+
+        private void ExportSolids(Element element)
+        {
+            foreach (GeometryObject geometryObject in element.get_Geometry(this.geometryOptions))
+                this.ExportGeometryObject(geometryObject);
+        }
+
+        private void ExportGeometryObject(GeometryObject geometryObject)
+        {
+            if (geometryObject==null || geometryObject.Visibility == Visibility.Invisible || this.documentStack.Peek().GetElement(geometryObject.GraphicsStyleId) is GraphicsStyle element && ((Element)element).Name.Contains("Light Source"))
+                return;
+            GeometryInstance geometryInstance = geometryObject as GeometryInstance;
+            if (geometryInstance!=null)
+            {
+                this.transformationStack.Push(this.transformationStack.Peek().Multiply(geometryInstance.Transform));
+                GeometryElement symbolGeometry = geometryInstance.GetSymbolGeometry();
+                if (symbolGeometry!=null)
+                {
+                    foreach (GeometryObject geometryObject1 in symbolGeometry)
+                    {
+                        if (geometryObject1!=null)
+                            this.ExportGeometryObject(geometryObject1);
+                    }
+                }
+                this.transformationStack.Pop();
+            }
+            else
+            {
+                Solid solid = geometryObject as Solid;
+                if ((GeometryObject)solid == (GeometryObject)null)
+                    return;
+                this.ExportSolid(solid);
+            }
+        }
+
+        private void ExportSolid(Solid solid)
+        {
+            foreach (Face face in solid.Faces)
+            {
+                if (face!=null)
+                {
+                    Mesh mesh = face.Triangulate(this.exportingOptions.ManualTessellatorLOD);
+                    if (mesh!=null && mesh.Visibility != Visibility.Invisible)
+                    {
+                        ulong elementUid = this.GetElementUID(face.MaterialElementId);
+                        if ((long)this.currentMaterialUID != (long)elementUid)
+                            this.SelectCurrentMaterial(this.materialManager.SelectMaterial(elementUid, face, this.documentStack.Peek()));
+                        IRevitMesh revitMesh = (IRevitMesh)new RevitMeshSIMD(this.transformationStack.Peek(), mesh);
+                        this.nVertices += (ulong)revitMesh.GetVerticesCount();
+                        this.currentMeshes.Add(revitMesh);
+                    }
+                }
+            }
+        }
+
+        
+        private bool IsElementStructural(Element element)
+        {
+            Category category = element.Category;
+            if (category != null)
+            {
+                int integerValue = category.Id.IntegerValue;
+                if (!integerValue.Equals(-2001320))
+                {
+                    integerValue = category.Id.IntegerValue;
+                    if (!integerValue.Equals(-2000175))
+                    {
+                        integerValue = category.Id.IntegerValue;
+                        if (!integerValue.Equals(-2000017))
+                        {
+                            integerValue = category.Id.IntegerValue;
+                            if (!integerValue.Equals(-2000018))
+                            {
+                                integerValue = category.Id.IntegerValue;
+                                if (!integerValue.Equals(-2000019))
+                                {
+                                    integerValue = category.Id.IntegerValue;
+                                    if (!integerValue.Equals(-2000020))
+                                    {
+                                        integerValue = category.Id.IntegerValue;
+                                        if (!integerValue.Equals(-2000126))
+                                            goto label_9;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return true;
+            }
+        label_9:
+            return false;
+        }
+
+        private bool IsElementRailings(Element element)
+        {
+            Category category = element.Category;
+            if (category != null)
+            {
+                int integerValue = category.Id.IntegerValue;
+                if (!integerValue.Equals(-2000175))
+                {
+                    integerValue = category.Id.IntegerValue;
+                    if (!integerValue.Equals(-2000126))
+                        goto label_4;
+                }
+                return true;
+            }
+        label_4:
+            return false;
+        }
+
+        private bool IsElementLink(Element element)
+        {
+            Category category = element.Category;
+            return category != null && category.Id.IntegerValue.Equals(-2001352);
+        }
+
+        private bool IsElementInInteriorCategory(Element element)
+        {
+            if (element is ModelText)
+                return false;
+            Category category = element.Category;
+            if (category != null)
+            {
+                int integerValue = category.Id.IntegerValue;
+                if (!integerValue.Equals(-2000080))
+                {
+                    integerValue = category.Id.IntegerValue;
+                    if (!integerValue.Equals(-2001000))
+                    {
+                        integerValue = category.Id.IntegerValue;
+                        if (!integerValue.Equals(-2001040))
+                        {
+                            integerValue = category.Id.IntegerValue;
+                            if (!integerValue.Equals(-2001060))
+                            {
+                                integerValue = category.Id.IntegerValue;
+                                if (!integerValue.Equals(-2001100))
+                                {
+                                    integerValue = category.Id.IntegerValue;
+                                    if (!integerValue.Equals(-2001140))
+                                    {
+                                        integerValue = category.Id.IntegerValue;
+                                        if (!integerValue.Equals(-2001160))
+                                        {
+                                            integerValue = category.Id.IntegerValue;
+                                            if (!integerValue.Equals(-2001350))
+                                            {
+                                                integerValue = category.Id.IntegerValue;
+                                                if (!integerValue.Equals(-2008013))
+                                                {
+                                                    integerValue = category.Id.IntegerValue;
+                                                    if (!integerValue.Equals(-2008075))
+                                                    {
+                                                        integerValue = category.Id.IntegerValue;
+                                                        if (!integerValue.Equals(-2008077))
+                                                        {
+                                                            integerValue = category.Id.IntegerValue;
+                                                            if (!integerValue.Equals(-2008079))
+                                                            {
+                                                                integerValue = category.Id.IntegerValue;
+                                                                if (!integerValue.Equals(-2008081))
+                                                                {
+                                                                    integerValue = category.Id.IntegerValue;
+                                                                    if (!integerValue.Equals(-2008085))
+                                                                    {
+                                                                        integerValue = category.Id.IntegerValue;
+                                                                        if (!integerValue.Equals(-2008083))
+                                                                        {
+                                                                            integerValue = category.Id.IntegerValue;
+                                                                            if (!integerValue.Equals(-2008087))
+                                                                            {
+                                                                                integerValue = category.Id.IntegerValue;
+                                                                                if (!integerValue.Equals(-2000151))
+                                                                                {
+                                                                                    integerValue = category.Id.IntegerValue;
+                                                                                    if (!integerValue.Equals(-2001120))
+                                                                                        goto label_22;
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return true;
+            }
+        label_22:
+            return false;
+        }
+
+
+        private bool IsElementUnsupported(Element element) => element is Level;
 
         public bool Start()
         {
-            CurrentPolymeshIndex = 0;
-            polymeshToMaterialId.Clear();
-
-            streamWriter = new StreamWriter(filename);
-
-            WriteXmlColladaBegin();
-            WriteXmlAsset();
-
-            WriteXmlLibraryGeometriesBegin();
-
+            this.documentStack.Clear();
+            this.documentStack.Push(this.mainDocument);
+            this.SelectCurrentDocument();
+            this.transformationStack.Clear();
+            this.transformationStack.Push(Transform.Identity);
+            this.modelNodes.Clear();
+            this.modelNodeId = 0;
+            int num = this.IsSolidsPass ? 1 : 0;
+            this.clock = new Stopwatch();
+            this.clock.Start();
+            this.HasSolids = false;
+            this.nSolids = 0;
             return true;
         }
 
         public void Finish()
         {
-            WriteXmlLibraryGeometriesEnd();
-
-            WriteXmlLibraryMaterials();
-            WriteXmlLibraryEffects();
-            WriteXmlLibraryVisualScenes();
-            WriteXmlColladaEnd();
-
-            streamWriter.Close();
+            this.clock.Stop();
+            int num = this.IsSolidsPass ? 1 : 0;
+            this.clock = (Stopwatch)null;
         }
 
-        private void WriteXmlColladaBegin()
+        public bool IsCanceled() => false;
+
+        public RenderNodeAction OnViewBegin(ViewNode node)
         {
-            streamWriter.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
-            streamWriter.Write("<COLLADA xmlns=\"http://www.collada.org/2005/11/COLLADASchema\" version=\"1.4.1\">\n");
+            node.LevelOfDetail = this.IsSolidsPass ? this.exportingOptions.SolidsLOD : this.exportingOptions.LevelOfDetail;
+            return (RenderNodeAction)0;
         }
 
-        private void WriteXmlColladaEnd()
+        public void OnViewEnd(ElementId elementId)
         {
-            streamWriter.Write("</COLLADA>\n");
         }
-
-        private void WriteXmlAsset()
-        {
-            streamWriter.Write("<asset>\n");
-            streamWriter.Write("<contributor>\n");
-            streamWriter.Write("  <authoring_tool>Arrowstreet - Revit COLLADA exporter</authoring_tool>\n");
-            streamWriter.Write("</contributor>\n");
-            streamWriter.Write("<created>" + DateTime.Now.ToString() + "</created>\n");
-
-            //Units
-            streamWriter.Write("<unit name=\"meter\" meter=\"1.00\"/>\n");
-            streamWriter.Write("<up_axis>Z_UP</up_axis>\n");
-            streamWriter.Write("</asset>\n");
-        }
-
-        private void WriteXmlLibraryGeometriesBegin()
-        {
-            streamWriter.Write("<library_geometries>\n");
-        }
-
-        private void WriteXmlLibraryGeometriesEnd()
-        {
-            streamWriter.Write("</library_geometries>\n");
-        }
-
-        public void OnPolymesh(PolymeshTopology polymesh)
-        {
-            CurrentPolymeshIndex++;
-
-            WriteXmlGeometryBegin();
-            WriteXmlGeometrySourcePositions(polymesh);
-            WriteXmlGeometrySourceNormals(polymesh);
-            if (polymesh.NumberOfUVs > 0)
-                WriteXmlGeometrySourceMap(polymesh);
-
-            WriteXmlGeometryVertices();
-
-            if (polymesh.NumberOfUVs > 0)
-                WriteXmlGeometryTrianglesWithMap(polymesh);
-            else
-                WriteXmlGeometryTrianglesWithoutMap(polymesh);
-
-            WriteXmlGeometryEnd();
-
-            polymeshToMaterialId.Add(CurrentPolymeshIndex, currentMaterialId);
-        }
-
-        private void WriteXmlGeometryBegin()
-        {
-            streamWriter.Write("<geometry id=\"geom-" + CurrentPolymeshIndex + "\" name=\"" + GetCurrentElementName() + "\">\n");
-            streamWriter.Write("<mesh>\n");
-        }
-
-        private string GetCurrentElementName()
-        {
-            Element element = CurrentElement;
-            if (element != null)
-                return element.Name;
-
-            return ""; //default name
-        }
-
-        private void WriteXmlGeometryEnd()
-        {
-            streamWriter.Write("</mesh>\n");
-            streamWriter.Write("</geometry>\n");
-        }
-
-        private void WriteXmlGeometrySourcePositions(PolymeshTopology polymesh)
-        {
-            streamWriter.Write("<source id=\"geom-" + CurrentPolymeshIndex + "-positions" + "\">\n");
-            streamWriter.Write("<float_array id=\"geom-" + CurrentPolymeshIndex + "-positions" + "-array" + "\" count=\"" + (polymesh.NumberOfPoints * 3) + "\">\n");
-
-            XYZ point;
-            Transform currentTransform = transformationStack.Peek();
-
-            for (int iPoint = 0; iPoint < polymesh.NumberOfPoints; ++iPoint)
-            {
-                point = polymesh.GetPoint(iPoint);
-                point = currentTransform.OfPoint(point);
-                streamWriter.Write("{0:0.0000} {1:0.0000} {2:0.0000}\n", point.X, point.Y, point.Z);
-            }
-
-            streamWriter.Write("</float_array>\n");
-            streamWriter.Write("<technique_common>\n");
-            streamWriter.Write("<accessor source=\"#geom-" + CurrentPolymeshIndex + "-positions" + "-array\"" + " count=\"" + polymesh.NumberOfPoints + "\" stride=\"3\">\n");
-            streamWriter.Write("<param name=\"X\" type=\"float\"/>\n");
-            streamWriter.Write("<param name=\"Y\" type=\"float\"/>\n");
-            streamWriter.Write("<param name=\"Z\" type=\"float\"/>\n");
-            streamWriter.Write("</accessor>\n");
-            streamWriter.Write("</technique_common>\n");
-            streamWriter.Write("</source>\n");
-        }
-
-        private void WriteXmlGeometrySourceNormals(PolymeshTopology polymesh)
-        {
-            int nNormals = 0;
-
-            switch (polymesh.DistributionOfNormals)
-            {
-                case DistributionOfNormals.AtEachPoint:
-                    nNormals = polymesh.NumberOfPoints;
-                    break;
-                case DistributionOfNormals.OnePerFace:
-                    nNormals = 1;
-                    break;
-                case DistributionOfNormals.OnEachFacet:
-                    //TODO : DistributionOfNormals.OnEachFacet
-                    nNormals = 1;
-                    break;
-            }
-
-            streamWriter.Write("<source id=\"geom-" + CurrentPolymeshIndex + "-normals" + "\">\n");
-            streamWriter.Write("<float_array id=\"geom-" + CurrentPolymeshIndex + "-normals" + "-array" + "\" count=\"" + (nNormals * 3) + "\">\n");
-
-            XYZ point;
-            Transform currentTransform = transformationStack.Peek();
-
-            for (int iNormal = 0; iNormal < nNormals; ++iNormal)
-            {
-                point = polymesh.GetNormal(iNormal);
-                point = currentTransform.OfVector(point);
-                streamWriter.Write("{0:0.0000} {1:0.0000} {2:0.0000}\n", point.X, point.Y, point.Z);
-            }
-
-            streamWriter.Write("</float_array>\n");
-            streamWriter.Write("<technique_common>\n");
-            streamWriter.Write("<accessor source=\"#geom-" + CurrentPolymeshIndex + "-normals" + "-array\"" + " count=\"" + nNormals + "\" stride=\"3\">\n");
-            streamWriter.Write("<param name=\"X\" type=\"float\"/>\n");
-            streamWriter.Write("<param name=\"Y\" type=\"float\"/>\n");
-            streamWriter.Write("<param name=\"Z\" type=\"float\"/>\n");
-            streamWriter.Write("</accessor>\n");
-            streamWriter.Write("</technique_common>\n");
-            streamWriter.Write("</source>\n");
-        }
-
-        private void WriteXmlGeometrySourceMap(PolymeshTopology polymesh)
-        {
-            streamWriter.Write("<source id=\"geom-" + CurrentPolymeshIndex + "-map" + "\">\n");
-            streamWriter.Write("<float_array id=\"geom-" + CurrentPolymeshIndex + "-map" + "-array" + "\" count=\"" + (polymesh.NumberOfUVs * 2) + "\">\n");
-
-            UV uv;
-
-            for (int iUv = 0; iUv < polymesh.NumberOfUVs; ++iUv)
-            {
-                uv = polymesh.GetUV(iUv);
-                streamWriter.Write("{0:0.0000} {1:0.0000}\n", uv.U, uv.V);
-            }
-
-            streamWriter.Write("</float_array>\n");
-            streamWriter.Write("<technique_common>\n");
-            streamWriter.Write("<accessor source=\"#geom-" + CurrentPolymeshIndex + "-map" + "-array\"" + " count=\"" + polymesh.NumberOfPoints + "\" stride=\"2\">\n");
-            streamWriter.Write("<param name=\"S\" type=\"float\"/>\n");
-            streamWriter.Write("<param name=\"T\" type=\"float\"/>\n");
-            streamWriter.Write("</accessor>\n");
-            streamWriter.Write("</technique_common>\n");
-            streamWriter.Write("</source>\n");
-        }
-
-        private void WriteXmlGeometryVertices()
-        {
-            streamWriter.Write("<vertices id=\"geom-" + CurrentPolymeshIndex + "-vertices" + "\">\n");
-            streamWriter.Write("<input semantic=\"POSITION\" source=\"#geom-" + CurrentPolymeshIndex + "-positions" + "\"/>\n");
-            streamWriter.Write("</vertices>\n");
-        }
-
-        private void WriteXmlGeometryTrianglesWithoutMap(PolymeshTopology polymesh)
-        {
-            streamWriter.Write("<triangles count=\"" + polymesh.NumberOfFacets + "\"");
-            if (IsMaterialValid(currentMaterialId))
-                streamWriter.Write(" material=\"material-" + currentMaterialId.ToString() + "\"");
-            streamWriter.Write(">\n");
-            streamWriter.Write("<input offset=\"0\" semantic=\"VERTEX\" source=\"#geom-" + CurrentPolymeshIndex + "-vertices" + "\"/>\n");
-            streamWriter.Write("<input offset=\"1\" semantic=\"NORMAL\" source=\"#geom-" + CurrentPolymeshIndex + "-normals" + "\"/>\n");
-            streamWriter.Write("<p>\n");
-            PolymeshFacet facet;
-
-            switch (polymesh.DistributionOfNormals)
-            {
-                case DistributionOfNormals.AtEachPoint:
-                    for (int i = 0; i < polymesh.NumberOfFacets; ++i)
-                    {
-                        facet = polymesh.GetFacet(i);
-                        streamWriter.Write(facet.V1 + " " + facet.V1 + " " +
-                                    facet.V2 + " " + facet.V2 + " " +
-                                    facet.V3 + " " + facet.V3 + " " +
-                                    "\n");
-                    }
-                    break;
-
-                case DistributionOfNormals.OnEachFacet:
-                //TODO : DistributionOfNormals.OnEachFacet
-                case DistributionOfNormals.OnePerFace:
-                    for (int i = 0; i < polymesh.NumberOfFacets; ++i)
-                    {
-                        facet = polymesh.GetFacet(i);
-                        streamWriter.Write(facet.V1 + " 0 " +
-                                    facet.V2 + " 0 " +
-                                    facet.V3 + " 0 " +
-                                    "\n");
-                    }
-                    break;
-
-            }
-
-            streamWriter.Write("</p>\n");
-            streamWriter.Write("</triangles>\n");
-        }
-
-        private void WriteXmlGeometryTrianglesWithMap(PolymeshTopology polymesh)
-        {
-            streamWriter.Write("<triangles count=\"" + polymesh.NumberOfFacets + "\"");
-            if (IsMaterialValid(currentMaterialId))
-                streamWriter.Write(" material=\"material-" + currentMaterialId.ToString() + "\"");
-            streamWriter.Write(">\n");
-            streamWriter.Write("<input offset=\"0\" semantic=\"VERTEX\" source=\"#geom-" + CurrentPolymeshIndex + "-vertices" + "\"/>\n");
-            streamWriter.Write("<input offset=\"1\" semantic=\"NORMAL\" source=\"#geom-" + CurrentPolymeshIndex + "-normals" + "\"/>\n");
-            streamWriter.Write("<input offset=\"2\" semantic=\"TEXCOORD\" source=\"#geom-" + CurrentPolymeshIndex + "-map" + "\" set=\"0\"/>\n");
-            streamWriter.Write("<p>\n");
-            PolymeshFacet facet;
-
-            switch (polymesh.DistributionOfNormals)
-            {
-                case DistributionOfNormals.AtEachPoint:
-                    for (int i = 0; i < polymesh.NumberOfFacets; ++i)
-                    {
-                        facet = polymesh.GetFacet(i);
-                        streamWriter.Write(facet.V1 + " " + facet.V1 + " " + facet.V1 + " " +
-                                    facet.V2 + " " + facet.V2 + " " + facet.V2 + " " +
-                                    facet.V3 + " " + facet.V3 + " " + facet.V3 + " " +
-                                    "\n");
-                    }
-                    break;
-
-                case DistributionOfNormals.OnEachFacet:
-                //TODO : DistributionOfNormals.OnEachFacet
-                case DistributionOfNormals.OnePerFace:
-                    for (int i = 0; i < polymesh.NumberOfFacets; ++i)
-                    {
-                        facet = polymesh.GetFacet(i);
-                        streamWriter.Write(facet.V1 + " 0 " + facet.V1 + " " +
-                                    facet.V2 + " 0 " + facet.V2 + " " +
-                                    facet.V3 + " 0 " + facet.V3 + " " +
-                                    "\n");
-                    }
-                    break;
-            }
-
-            streamWriter.Write("</p>\n");
-            streamWriter.Write("</triangles>\n");
-        }
-
-        public void OnMaterial(MaterialNode node)
-        {
-            // OnMaterial method can be invoked for every single out-coming mesh
-            // even when the material has not actually changed. Thus it is usually
-            // beneficial to store the current material and only get its attributes
-            // when the material actually changes.
-
-            currentMaterialId = node.MaterialId;
-        }
-
-        private void WriteXmlLibraryMaterials()
-        {
-            streamWriter.Write("<library_materials>\n");
-
-            foreach (var materialId in polymeshToMaterialId.Values.Distinct())
-            {
-                if (IsMaterialValid(materialId) == false)
-                    continue;
-
-                streamWriter.Write("<material id=\"material-" + materialId.ToString() + "\" name=\"" + GetMaterialName(materialId) + "\">\n");
-                streamWriter.Write("<instance_effect url=\"#effect-" + materialId.ToString() + "\" />\n");
-                streamWriter.Write("</material>\n");
-            }
-
-            streamWriter.Write("</library_materials>\n");
-        }
-
-        private string GetMaterialName(ElementId materialId)
-        {
-            Material material = exportedDocument.GetElement(materialId) as Material;
-            if (material != null)
-                return material.Name;
-
-            return ""; //default material name
-        }
-
-        private bool IsMaterialValid(ElementId materialId)
-        {
-            Material material = exportedDocument.GetElement(materialId) as Material;
-            if (material != null)
-                return true;
-
-            return false;
-        }
-
-        private void WriteXmlLibraryEffects()
-        {
-            streamWriter.Write("<library_effects>\n");
-
-            foreach (var materialId in polymeshToMaterialId.Values.Distinct())
-            {
-                if (IsMaterialValid(materialId) == false)
-                    continue;
-
-                Material material = exportedDocument.GetElement(materialId) as Material;
-
-                streamWriter.Write("<effect id=\"effect-" + materialId.ToString() + "\" name=\"" + GetMaterialName(materialId) + "\">\n");
-                streamWriter.Write("<profile_COMMON>\n");
-
-                streamWriter.Write("<technique sid=\"common\">\n");
-                streamWriter.Write("<phong>\n");
-                streamWriter.Write("<ambient>\n");
-                streamWriter.Write("<color>0.1 0.1 0.1 1.000000</color>\n");
-                streamWriter.Write("</ambient>\n");
-
-
-                //diffuse
-                streamWriter.Write("<diffuse>\n");
-                streamWriter.Write("<color>" + material.Color.Red + " " + material.Color.Green + " " + material.Color.Blue + " 1.0</color>\n");
-                streamWriter.Write("</diffuse>\n");
-
-
-                streamWriter.Write("<specular>\n");
-                streamWriter.Write("<color>1.000000 1.000000 1.000000 1.000000</color>\n");
-                streamWriter.Write("</specular>\n");
-
-                streamWriter.Write("<shininess>\n");
-                streamWriter.Write("<float>" + material.Shininess + "</float>\n");
-                streamWriter.Write("</shininess>\n");
-
-                streamWriter.Write("<reflective>\n");
-                streamWriter.Write("<color>0 0 0 1.000000</color>\n");
-                streamWriter.Write("</reflective>\n");
-                streamWriter.Write("<reflectivity>\n");
-                streamWriter.Write("<float>1.000000</float>\n");
-                streamWriter.Write("</reflectivity>\n");
-
-                streamWriter.Write("<transparent opaque=\"RGB_ZERO\">\n");
-                streamWriter.Write("<color>1.000000 1.000000 1.000000 1.000000</color>\n");
-                streamWriter.Write("</transparent>\n");
-
-                streamWriter.Write("<transparency>\n");
-                streamWriter.Write("<float>" + material.Transparency + "</float>\n");
-                streamWriter.Write("</transparency>\n");
-
-                streamWriter.Write("</phong>\n");
-                streamWriter.Write("</technique>\n");
-
-
-                streamWriter.Write("</profile_COMMON>\n");
-                streamWriter.Write("</effect>\n");
-            }
-
-            streamWriter.Write("</library_effects>\n");
-        }
-
-        public void WriteXmlLibraryVisualScenes()
-        {
-            streamWriter.Write("<library_visual_scenes>\n");
-            streamWriter.Write("<visual_scene id=\"Revit_project\">\n");
-
-            foreach (var pair in polymeshToMaterialId)
-            {
-                streamWriter.Write("<node id=\"node-" + pair.Key + "\" name=\"" + "elementName" + "\">\n");
-                streamWriter.Write("<instance_geometry url=\"#geom-" + pair.Key + "\">\n");
-                if (IsMaterialValid(pair.Value))
-                {
-                    streamWriter.Write("<bind_material>\n");
-                    streamWriter.Write("<technique_common>\n");
-                    streamWriter.Write("<instance_material target=\"#material-" + pair.Value + "\" symbol=\"material-" + pair.Value + "\" >\n");
-                    streamWriter.Write("</instance_material>\n");
-                    streamWriter.Write("</technique_common>\n");
-                    streamWriter.Write("</bind_material>\n");
-                }
-                streamWriter.Write("</instance_geometry>\n");
-                streamWriter.Write("</node>\n");
-            }
-
-            streamWriter.Write("</visual_scene>\n");
-            streamWriter.Write("</library_visual_scenes>\n");
-
-            streamWriter.Write("<scene>\n");
-            streamWriter.Write("<instance_visual_scene url=\"#Revit_project\"/>\n");
-            streamWriter.Write("</scene>\n");
-        }
-
-        public bool IsCanceled()
-        {
-            // This method is invoked many times during the export process.
-            return isCancelled;
-        }
-
-        //public void OnDaylightPortal( DaylightPortalNode node )
-        //{
-        //}//
 
         public void OnRPC(RPCNode node)
         {
         }
 
-        public RenderNodeAction OnViewBegin(ViewNode node)
-        {
-            return RenderNodeAction.Proceed;
-        }
-
-        public void OnViewEnd(ElementId elementId)
-        {
-            // Note: This method is invoked even for a view that was skipped.
-        }
-
-        public RenderNodeAction OnElementBegin(ElementId elementId)
-        {
-            elementStack.Push(elementId);
-
-            return RenderNodeAction.Proceed;
-        }
-
-        public void OnElementEnd(ElementId elementId)
-        {
-            // Note: this method is invoked even for elements that were skipped.
-            elementStack.Pop();
-        }
-
-        public RenderNodeAction OnFaceBegin(FaceNode node)
-        {
-            // This method is invoked only if the custom exporter was set to include faces.
-            return RenderNodeAction.Proceed;
-        }
-
-        public void OnFaceEnd(FaceNode node)
-        {
-            // This method is invoked only if the custom exporter was set to include faces.
-            // Note: This method is invoked even for faces that were skipped.
-        }
-
         public RenderNodeAction OnInstanceBegin(InstanceNode node)
         {
-            // This method marks the start of processing a family instance
-            transformationStack.Push(transformationStack.Peek().Multiply(node.GetTransform()));
-
-            // We can either skip this instance or proceed with rendering it.
-            return RenderNodeAction.Proceed;
+            RenderNodeAction renderNodeAction = (RenderNodeAction)0;
+            this.hasGeometry = false;
+            try
+            {
+                ElementId symbolId = ((GroupNode)node).GetSymbolId();
+                Element element = this.documentStack.Peek().GetElement(symbolId);              
+                this.InstanceDescription = !(element is FamilySymbol familySymbol) ? string.Format("Instance: [{0}] {1}", element == null ? (object)"<null>" : (object)string.Concat((object)((object)element).GetType()), (object)((RenderNode)node).NodeName) : string.Format("Family instance: [{0}] of <{1}>", (object)((RenderNode)node).NodeName, (object)((Element)familySymbol).Name);
+                this.transformationStack.Push(this.transformationStack.Peek().Multiply(((GroupNode)node).GetTransform()));
+            }
+            catch (Exception ex)
+            {
+                this.transformationStack.Push(Transform.Identity);
+                renderNodeAction = (RenderNodeAction)1;
+            }
+            return renderNodeAction;
         }
 
         public void OnInstanceEnd(InstanceNode node)
         {
-            // Note: This method is invoked even for instances that were skipped.
-            transformationStack.Pop();
+            Transform transform = this.transformationStack.Pop();
+            if (this.hasGeometry)
+                this.modelNodes.Add(++this.modelNodeId, transform);
+            this.InstanceDescription = "";
         }
 
         public RenderNodeAction OnLinkBegin(LinkNode node)
         {
-            transformationStack.Push(transformationStack.Peek().Multiply(node.GetTransform()));
-            return RenderNodeAction.Proceed;
+            RenderNodeAction renderNodeAction = (RenderNodeAction)0;
+            this.LinkDescription = string.Format("Link: {0} <{1}>", (object)((RenderNode)node).NodeName, node.GetDocument() != null ? (object)node.GetDocument().Title : (object)"no-document");
+            this.documentStack.Push(node.GetDocument());
+            this.SelectCurrentDocument();
+            try
+            {
+                this.transformationStack.Push(this.transformationStack.Peek().Multiply(((GroupNode)node).GetTransform()));
+            }
+            catch (Exception ex)
+            {
+                this.transformationStack.Push(Transform.Identity);
+                renderNodeAction = (RenderNodeAction)1;
+            }
+            return renderNodeAction;
         }
 
         public void OnLinkEnd(LinkNode node)
         {
-            // Note: This method is invoked even for instances that were skipped.
-            transformationStack.Pop();
+            this.documentStack.Pop();
+            this.transformationStack.Pop();
+            this.SelectCurrentDocument();
+            this.LinkDescription = "";
+        }
+
+        public RenderNodeAction OnElementBegin(ElementId elementId)
+        {
+            try
+            {
+                Element element = this.documentStack.Peek().GetElement(elementId);
+                if (element != null)
+                {
+                    if (this.IsElementUnsupported(element) || this.exportingOptions.SkipInteriorDetails && this.IsElementInInteriorCategory(element))
+                        return (RenderNodeAction)1;
+                    bool flag = this.IsElementStructural(element);
+                    if (this.IsSolidsPass)
+                    {
+                        if (flag)
+                        {
+                            ++this.nSolids;
+                            if (!this.exportingOptions.OptimizeSolids)
+                                return (RenderNodeAction)0;
+                            this.hasGeometry = true;
+                            this.ExportSolids(element);
+                            return (RenderNodeAction)1;
+                        }
+                        return this.IsElementLink(element) ? (RenderNodeAction)0 : (RenderNodeAction)1;
+                    }
+                    if (flag)
+                    {
+                        ++this.nSolids;
+                        this.HasSolids = true;
+                        return (RenderNodeAction)1;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return (RenderNodeAction)1;
+            }
+            return !this.IsSolidsPass ? (RenderNodeAction)0 : (RenderNodeAction)1;
+        }
+
+        public void OnElementEnd(ElementId elementId)
+        {
+        }
+
+        public void OnMaterial(MaterialNode materialNode)
+        {
+            ulong elementUid = this.GetElementUID(materialNode.MaterialId);
+            if ((long)this.currentMaterialUID == (long)elementUid)
+                return;
+            this.SelectCurrentMaterial(this.materialManager.SelectMaterial(elementUid, materialNode, this.documentStack.Peek()));
+        }
+
+        public void OnPolymesh(PolymeshTopology polyMesh)
+        {
+            Transform tr = this.transformationStack.Peek();
+            try
+            {
+                IRevitMesh revitMesh = (IRevitMesh)new RevitMeshSIMD(tr, polyMesh);
+                this.nVertices += (ulong)revitMesh.GetVerticesCount();
+                this.hasGeometry = true;
+                this.currentMeshes.Add(revitMesh);
+            }
+            catch (Exception ex)
+            {
+            }
+        }
+
+        public RenderNodeAction OnFaceBegin(FaceNode node) => (RenderNodeAction)1;
+
+        public void OnFaceEnd(FaceNode node)
+        {
         }
 
         public void OnLight(LightNode node)
