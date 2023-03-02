@@ -1,7 +1,11 @@
 ﻿using Autodesk.Revit.DB;
+using Autodesk.Revit.DB.Architecture;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using AstRevitTool.Core.Export;
+using Microsoft.Office.Interop.Excel;
 
 namespace AstRevitTool.Core
 {
@@ -17,10 +21,198 @@ namespace AstRevitTool.Core
             return string.Format("{0}", "{1}", "{2}", Math.Round(p.X, 2), Math.Round(p.Y, 2), Math.Round(p.Z, 2));
         }
 
+        public static System.Windows.Media.Color FormColorFromRevit(Autodesk.Revit.DB.Color rvtColor)
+        {
+            byte r = rvtColor.Red;
+            byte g = rvtColor.Green;
+            byte b = rvtColor.Blue;
+            return System.Windows.Media.Color.FromRgb(r, g, b);
+        }
+
+        public static void runPython(string appFolder, string name, string outDir, string project_name, string mode)
+        {
+            string folder = appFolder;
+            System.Diagnostics.Process p = new System.Diagnostics.Process();
+            p.StartInfo.FileName = "cmd.exe";
+            p.StartInfo.UseShellExecute = false;
+            p.StartInfo.RedirectStandardInput = true;
+            p.StartInfo.RedirectStandardOutput = true;
+            p.StartInfo.RedirectStandardError = true;
+            p.StartInfo.CreateNoWindow = true;
+            p.StartInfo.WorkingDirectory = folder;
+            p.Start();
+
+
+            string matrix = string.Format("app.exe -i {0} -o {1} -n{2} -m{3}", '"' + name + '"', '"' + outDir + '"', '"' + project_name + '"', mode);
+            p.StandardInput.WriteLine(matrix);
+
+            p.StandardInput.AutoFlush = true;
+            p.StandardInput.WriteLine("exit");
+
+            string output = p.StandardOutput.ReadToEnd();
+            System.Windows.MessageBox.Show(output);
+            
+
+        }
+        public static Autodesk.Revit.DB.Color RevitColorFromForm(System.Windows.Media.Color color)
+        {
+            return new Autodesk.Revit.DB.Color(color.R, color.G, color.B);
+        }
+        public static byte[] HexStringToColor(string hexColor)
+        {
+            var color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#" + hexColor);
+            byte r = color.R;
+            byte g = color.G;
+            byte b = color.B;
+            return new byte[] { r, g, b };
+        }
         public static Plane getAppropriatePlane(View view)
         {
             Plane plane = Plane.CreateByNormalAndOrigin(view.ViewDirection, view.Origin);
             return plane;
+        }
+
+        public static void DetermineAdjacentElementLengthsAndWallAreas(Room room, out SvgExport.roomJson rjson)
+        {
+            SpatialElementBoundaryOptions option = new SpatialElementBoundaryOptions();
+            IList<IList<BoundarySegment>> boundaries= room.GetBoundarySegments(option);
+            List<SvgExport.wallJson> allwalls = new List<SvgExport.wallJson>();
+            int n = boundaries.Count;
+
+            Document doc = room.Document;
+
+            int iBoundary = 0, iSegment;
+            double adjustedArea = room.Area;
+            foreach (var b in boundaries)
+            {
+                ++iBoundary;
+                iSegment = 0;
+                foreach (BoundarySegment s in b)
+                {
+                    ++iSegment;
+                    ElementId neighbourid = s.ElementId;
+                    Element neighbour = doc.GetElement(neighbourid);
+                    if(neighbour is RevitLinkInstance)
+                    {
+                        neighbourid = s.LinkElementId;
+                        RevitLinkInstance link = neighbour as RevitLinkInstance;
+                        neighbour = link.GetLinkDocument().GetElement(neighbourid);
+                    }
+                    Curve curve = s.GetCurve();
+                    double length = curve.Length;
+
+                    Debug.Print(
+                      "  Neighbour {0}:{1} {2} has {3}"
+                      + " feet adjacent to room.",
+                      iBoundary, iSegment,
+                      Util.ElementDescription(neighbour),
+                      Util.RealString(length));
+
+                    if (neighbour is Wall)
+                    {
+                        Wall wall = neighbour as Wall;
+                        SvgExport.wallJson wjson = new SvgExport.wallJson(wall,length);
+                        if(wall.Name.Contains("EWA") || wall.Name.Contains("EXT"))
+                        {
+                            if (wall.WallType.GetCompoundStructure() == null)
+                            {
+                                continue;
+                            }
+                            SvgExport.extWallJson ewj;
+                            AnalyzeExteriorWall(wall, length, out ewj);
+                            allwalls.Add(ewj);
+                            adjustedArea += ewj.wallWidth * ewj.effectiveWidth;
+                        }
+                        else if(wall.Name.Contains("Corridor"))
+                        {
+                            allwalls.Add(wjson);
+                            adjustedArea += wjson.wallWidth * wjson.wallLength;
+                        }
+                        else if (wall.Name.Contains("Demising"))
+                        {
+                            allwalls.Add(wjson);
+                            adjustedArea += 0.5 * wjson.wallWidth * wjson.wallLength;
+                        }
+                        //TODO: Save all neighbour wall names as a Json file and print them out
+                        Autodesk.Revit.DB.Parameter p = wall.get_Parameter(
+                          BuiltInParameter.HOST_AREA_COMPUTED);
+
+                        double area = p.AsDouble();
+
+                        /*LocationCurve lc
+                          //= wall.Location as LocationCurve;
+
+                        //double wallLength = lc.Curve.Length;
+
+                        Debug.Print(
+                          "    This wall has a total length"
+                          + " and area of {0} feet and {1}"
+                          + " square feet.",
+                          Util.RealString(wallLength),
+                          Util.RealString(area));*/
+                    }
+                }
+            }
+            rjson = new SvgExport.roomJson(room, allwalls);
+            rjson.ajustedRoomArea = adjustedArea;
+        }
+
+        public static void AnalyzeExteriorWall(Wall wall, double adjLength, out SvgExport.extWallJson ewj)
+        {
+            int i, n;
+            double halfThickness, layerOffset;
+            XYZ lcstart, lcend, v, w, p, q;
+
+            LocationCurve curve
+      = wall.Location as LocationCurve;
+
+            lcstart = curve.Curve.GetEndPoint(0);
+            lcend = curve.Curve.GetEndPoint(1);
+            halfThickness = 0.5 * wall.WallType.Width;
+            v = lcend - lcstart;
+            v = v.Normalize(); // one foot long
+            w = XYZ.BasisZ.CrossProduct(v).Normalize();
+            if (wall.Flipped) { w = -w; }
+
+            CompoundStructure structure = wall.WallType.GetCompoundStructure();
+            halfThickness = 0.5 * wall.WallType.Width;
+            var layers = structure.GetLayers();
+            n = layers.Count;
+            i = 0;
+            layerOffset = halfThickness;
+            double[] thickness= new double[n];
+            string[] materials = new string[n];
+            MaterialFunctionAssignment[] functions = new MaterialFunctionAssignment[n];
+            double effectiveWidth = 0.0;
+            foreach(var layer in layers)
+            {
+                MaterialFunctionAssignment function = layer.Function;
+                double width = layer.Width;
+                string material = wall.Document.GetElement(layer.MaterialId)?.Name;
+                if(material == null) { material = "Empty"; }
+                //FLIPPED LAYER SEQUENCE: FROM INTERIOR TO EXTERIOR
+                if (!wall.Flipped)
+                {
+                    thickness[n-i-1]= width;
+                    materials[n - i - 1] = material;
+                    functions[n - i - 1] = function;
+                }
+                else
+                {
+                    thickness[i] = width;
+                    materials[i] = material;
+                    functions[i] = function;
+                }
+                i++;
+                
+            }
+            int k = 0;
+            while (k < n && functions[k]!= MaterialFunctionAssignment.Substrate)
+            {
+                effectiveWidth += thickness[k];
+                k++;
+            }
+            ewj = new SvgExport.extWallJson(wall,adjLength,thickness, materials, functions,effectiveWidth);
         }
 
         public static void addTo(IList<XYZ> to, IList<XYZ> from)
@@ -36,6 +228,11 @@ namespace AstRevitTool.Core
                     to.Add(p1);
                 }
             }
+        }
+
+        public static bool checkLocalPath(string path)
+        {
+            return false; 
         }
 
         public static int[] GetVec3MinMax(List<int> vec3)
@@ -273,7 +470,7 @@ namespace AstRevitTool.Core
         /// </summary>
         public static Dictionary<string, string> GetElementProperties(Element e, bool includeType)
         {
-            IList<Parameter> parameters
+            IList<Autodesk.Revit.DB.Parameter> parameters
               = e.GetOrderedParameters();
 
             Dictionary<string, string> a = new Dictionary<string, string>(parameters.Count);
@@ -284,7 +481,7 @@ namespace AstRevitTool.Core
             string key;
             string val;
 
-            foreach (Parameter p in parameters)
+            foreach (Autodesk.Revit.DB.Parameter p in parameters)
             {
                 key = p.Definition.Name;
 
@@ -314,7 +511,7 @@ namespace AstRevitTool.Core
                     Document doc = e.Document;
                     Element typ = doc.GetElement(idType);
                     parameters = typ.GetOrderedParameters();
-                    foreach (Parameter p in parameters)
+                    foreach (Autodesk.Revit.DB.Parameter p in parameters)
                     {
                         key = "Type " + p.Definition.Name;
 

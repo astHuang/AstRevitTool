@@ -22,6 +22,7 @@ using System.Text.RegularExpressions;
 using System.Net;
 using AstRevitTool.Energy;
 using Octokit;
+using System.Collections.ObjectModel;
 
 
 namespace AstRevitTool.Commands
@@ -56,7 +57,7 @@ namespace AstRevitTool.Commands
 
                 Views.Form1 form = new Views.Form1(wwr, doc);
 
-                form.ShowDialog();
+                form.Show();
                 rc = Result.Succeeded;
             }
             catch (Exception ex)
@@ -1104,6 +1105,36 @@ namespace AstRevitTool.Commands
         }
 
     }
+    [Autodesk.Revit.Attributes.Transaction(Autodesk.Revit.Attributes.TransactionMode.Manual)]
+    [Autodesk.Revit.Attributes.Regeneration(Autodesk.Revit.Attributes.RegenerationOption.Manual)]
+    [Autodesk.Revit.Attributes.Journaling(Autodesk.Revit.Attributes.JournalingMode.NoCommandData)]
+    public class CmdRoomSchedule : IExternalCommand
+    {
+        public Autodesk.Revit.UI.Result Execute(Autodesk.Revit.UI.ExternalCommandData commandData,
+                                               ref string message, Autodesk.Revit.DB.ElementSet elements)
+        {
+            Transaction tranSample = null;
+            try
+            {
+                tranSample = new Transaction(commandData.Application.ActiveUIDocument.Document, "Sample Start");
+                tranSample.Start();
+                // create a form to display the information of Revit rooms and xls based rooms
+                using (Core.UnitMatrix.RoomScheduleForm infoForm = new Core.UnitMatrix.RoomScheduleForm(commandData))
+                {
+                    infoForm.ShowDialog();
+                }
+                tranSample.Commit();
+                return Autodesk.Revit.UI.Result.Succeeded;
+            }
+            catch (Exception ex)
+            {
+                if (null != tranSample) tranSample.RollBack();
+                // if there are something wrong, give error information and return failed
+                message = ex.Message;
+                return Autodesk.Revit.UI.Result.Failed;
+            }
+        }
+    }
 
     [Transaction(TransactionMode.ReadOnly)]
     public class CmdUnitMatrix : IExternalCommand
@@ -1235,12 +1266,18 @@ namespace AstRevitTool.Commands
         public bool CheckViewSchedule(ViewSchedule vs, Document doc)
         {
             FilteredElementCollector col = new FilteredElementCollector(doc, vs.Id);
+            List<SvgExport.roomJson> rjs = new List<SvgExport.roomJson>();
             foreach(Element element in col)
             {
                 Room room = element as Room;
+                
                 if (room == null) continue;
                 else
                 {
+                    SvgExport.roomJson rj;
+                    Util.DetermineAdjacentElementLengthsAndWallAreas(room,out rj);
+                    rjs.Add(rj);
+                    
                     string name = room.Name;
                     bool current = checkName(name);
                     if (!current)
@@ -1250,6 +1287,23 @@ namespace AstRevitTool.Commands
                         return false;
                     }
                 }
+            }
+            SaveFileDialog dlg = new SaveFileDialog();
+            dlg.FileName = "UnitMatrix__" + doc.Title;
+            dlg.DefaultExt = "json";
+            dlg.CheckFileExists = false;
+            dlg.AddExtension = true;
+            dlg.Filter = "JSON files(*.json) | *.json | All files(*.*) | *.* ";
+            if (dlg.ShowDialog() == DialogResult.OK)
+            {
+                SvgExport.unitMatrixJson umj = new SvgExport.unitMatrixJson(rjs);
+                string filename = dlg.FileName;
+                StreamWriter sw = new StreamWriter(filename);
+                sw.Write(umj.toJsonString());
+                sw.Close();
+                string msg = "JSON file is saved! File location: " + dlg.FileName;
+                string title = "Successfully saved Unit Matrix Json file!";
+                MessageBox.Show(msg, title);
             }
             return true;
         }
@@ -1287,6 +1341,7 @@ namespace AstRevitTool.Commands
             var app = uiapp.Application;
             Document doc = uidoc.Document;
             ViewSchedule view = doc.ActiveView as ViewSchedule;
+            CheckViewSchedule(view, doc);
             string project = doc.ProjectInformation.Name;
             if (view == null)
             {
@@ -1314,7 +1369,7 @@ namespace AstRevitTool.Commands
             dlg.DefaultExt = "xlsx";
             dlg.CheckFileExists = false;
             dlg.AddExtension = true;
-            dlg.Filter = "Excel Files|*.xls;*.xlsx;*.xlsm"; ;
+            dlg.Filter = "Excel Files|*.xls;*.xlsx;*.xlsm"; 
             if (dlg.ShowDialog() == DialogResult.OK)
             {
                 string filename = dlg.FileName;
@@ -1330,6 +1385,7 @@ namespace AstRevitTool.Commands
                 //name = "RoomSchedule---20021_WhitinAve_v2020_detached_waldron7YAGT.txt";
                 bool toContinue = ScheduleDataParser(datafolder + "\\" + name);
                 if (!toContinue) { return Result.Cancelled; }
+                
                 runPython(name, dlg.FileName, project);
                 string logpath = folder + "\\dist\\app\\RESULT_FLAG.txt";
                 if (File.ReadAllText(logpath) == "TRUE")

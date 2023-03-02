@@ -3,6 +3,8 @@ using Autodesk.Revit.UI;
 using AutoUpdaterDotNET;
 using AstRevitTool.Masterclass.Dockable;
 using Autodesk.Revit.DB.Events;
+using AstRevitTool.Views;
+using AstRevitTool.Core.UnitMatrix;
 
 namespace AstRevitTool
 {
@@ -12,15 +14,44 @@ namespace AstRevitTool
         private const string RibbonImageUri = "/AstRevitTool;component/Resources/Icons/icon-16.png";
         private const string RibbonLargeImageUri = "/AstRevitTool;component/Resources/Icons/icon-32.png";
 
+        static private EventsReactor m_eventReactor;
+
+        public static EventsReactor EventReactor
+        {
+            get
+            {
+                if (null == m_eventReactor)
+                {
+                    throw new ArgumentException("External application was not loaded yet, please make sure you register external application by correct full path of dll.", "EventReactor");
+                }
+                else
+                {
+                    return Application.m_eventReactor;
+                }
+            }
+        }
+
+        public static ASTRequestHandler ASTRequestHandler { get; set; }
+        public static ExternalEvent ASTEvent { get; set; }
         public Result OnStartup(UIControlledApplication application)
         {
             AddMenu(application);
-
+            string assemblyName = this.GetType().Assembly.Location;
+            m_eventReactor = new EventsReactor(assemblyName.Replace(".dll", ".log"));
+            //
+            // subscribe events
+            application.ControlledApplication.DocumentSaving += new EventHandler<Autodesk.Revit.DB.Events.DocumentSavingEventArgs>(EventReactor.DocumentSaving);
+            application.ControlledApplication.DocumentSavingAs += new EventHandler<Autodesk.Revit.DB.Events.DocumentSavingAsEventArgs>(EventReactor.DocumentSavingAs);
+            application.ControlledApplication.DocumentClosed += new EventHandler<Autodesk.Revit.DB.Events.DocumentClosedEventArgs>(EventReactor.DocumentClosed);
             return Result.Succeeded;
         }
 
         public Result OnShutdown(UIControlledApplication application)
         {
+            m_eventReactor.Dispose();
+            application.ControlledApplication.DocumentSaving -= new EventHandler<Autodesk.Revit.DB.Events.DocumentSavingEventArgs>(EventReactor.DocumentSaving);
+            application.ControlledApplication.DocumentSavingAs -= new EventHandler<Autodesk.Revit.DB.Events.DocumentSavingAsEventArgs>(EventReactor.DocumentSavingAs);
+            application.ControlledApplication.DocumentClosed -= new EventHandler<Autodesk.Revit.DB.Events.DocumentClosedEventArgs>(EventReactor.DocumentClosed);
             return Result.Succeeded;
         }
 
@@ -40,7 +71,10 @@ namespace AstRevitTool
             takeoffBtn.AddPushButton(typeof(CmdAssembly), "Exterior Types Take-off");
             takeoffBtn.AddPushButton(typeof(CmdAssemblyMaterial), "Assembly Decomposition");
             takeoffBtn.AddPushButton(typeof(CmdMatCalc), "Material Take-off");
-            //takeoffBtn.AddPushButton(typeof(CmdCustomAnalysis), "Custom Analysis");
+            takeoffBtn.AddPushButton(typeof(CmdCustomAnalysis), "Custom Analysis");
+
+            ASTRequestHandler = new ASTRequestHandler();
+            ASTEvent = ExternalEvent.Create(ASTRequestHandler);
 
             PulldownButtonData data2 = new PulldownButtonData("Export", "Exporting Tools");
             var item2 = panel.AddItem(data2);
@@ -51,8 +85,8 @@ namespace AstRevitTool
             //exportBtn.AddPushButton(typeof(CmdUSDExport), "Export 3D model as GLTF");
             exportBtn.AddPushButton(typeof(CmdSvgExport), "Export BOMA schedule with floorplans");
             exportBtn.AddPushButton(typeof(CmdBOMA), "Export BOMA standadard Excel Sheet");
-            exportBtn.AddPushButton(typeof(CmdUnitMatrix), "Export Unit Matrix Excel Sheet");
-
+            //exportBtn.AddPushButton(typeof(CmdUnitMatrix), "Export Unit Matrix Excel Sheet");
+            exportBtn.AddPushButton(typeof(CmdRoomSchedule), "Room and unix matrix manager");
             var showButton = panel.AddPushButton<CmdUpdater>("Update Check");
             showButton.SetImage(RibbonImageUri);
             showButton.SetLargeImage(RibbonLargeImageUri);

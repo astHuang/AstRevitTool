@@ -19,7 +19,7 @@ namespace AstRevitTool.Core.Analysis
             this.SortByCategory = false;
             this.IncludeGeneric = false;
             this.ActiveView = context.MainDoc.ActiveView;
-            this.UIApp = context.UIApp;
+            //this.UIApp = context.UIApp;
         }
         public bool SortByCategory { get; set; }
         public bool SortByFamily { get; set; }
@@ -28,7 +28,7 @@ namespace AstRevitTool.Core.Analysis
         public bool IncludeGeneric { get; set; }
 
         public Autodesk.Revit.DB.View ActiveView { get; set; }
-        public Autodesk.Revit.UI.UIApplication UIApp { get; set; }
+        //public Autodesk.Revit.UI.UIApplication UIApp { get; set; }
 
         private ICollection<Element> MyElements = new List<Element>();
 

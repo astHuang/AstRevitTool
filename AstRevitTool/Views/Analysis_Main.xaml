@@ -5,10 +5,157 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:AstRevitTool.Views"
         mc:Ignorable="d"
-        Title="AST Take-off Main Window" Height="508" Width="800">
+        Title="AST Take-off Main Window" Height="508" Width="784">
     <Window.DataContext>
         <local:ViewModelByCategory />
     </Window.DataContext>
+
+    <Window.Resources>
+        <Style x:Key="TreeViewItemFocusVisual">
+            <Setter Property="Control.Template">
+                <Setter.Value>
+                    <ControlTemplate>
+                        <Rectangle/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <SolidColorBrush x:Key="TreeViewItem.TreeArrow.Static.Checked.Fill" Color="#FF595959"/>
+        <SolidColorBrush x:Key="TreeViewItem.TreeArrow.Static.Checked.Stroke" Color="#FF262626"/>
+        <SolidColorBrush x:Key="TreeViewItem.TreeArrow.MouseOver.Stroke" Color="#FF1BBBFA"/>
+        <SolidColorBrush x:Key="TreeViewItem.TreeArrow.MouseOver.Fill" Color="Transparent"/>
+        <SolidColorBrush x:Key="TreeViewItem.TreeArrow.MouseOver.Checked.Stroke" Color="#FF262626"/>
+        <SolidColorBrush x:Key="TreeViewItem.TreeArrow.MouseOver.Checked.Fill" Color="#FF595959"/>
+        <PathGeometry x:Key="TreeArrow" Figures="M0,0 L0,6 L6,0 z"/>
+        <SolidColorBrush x:Key="TreeViewItem.TreeArrow.Static.Fill" Color="Transparent"/>
+        <SolidColorBrush x:Key="TreeViewItem.TreeArrow.Static.Stroke" Color="#FF989898"/>
+        <Style x:Key="ExpandCollapseToggleStyle" TargetType="{x:Type ToggleButton}">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Width" Value="16"/>
+            <Setter Property="Height" Value="16"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ToggleButton}">
+                        <Border Background="Transparent" Height="16" Padding="5,5,5,5" Width="16">
+                            <Path x:Name="ExpandPath" Data="{StaticResource TreeArrow}" Fill="{StaticResource TreeViewItem.TreeArrow.Static.Fill}" Stroke="{StaticResource TreeViewItem.TreeArrow.Static.Stroke}">
+                                <Path.RenderTransform>
+                                    <RotateTransform Angle="135" CenterY="3" CenterX="3"/>
+                                </Path.RenderTransform>
+                            </Path>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="RenderTransform" TargetName="ExpandPath">
+                                    <Setter.Value>
+                                        <RotateTransform Angle="180" CenterY="3" CenterX="3"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="Fill" TargetName="ExpandPath" Value="{StaticResource TreeViewItem.TreeArrow.Static.Checked.Fill}"/>
+                                <Setter Property="Stroke" TargetName="ExpandPath" Value="{StaticResource TreeViewItem.TreeArrow.Static.Checked.Stroke}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Stroke" TargetName="ExpandPath" Value="{StaticResource TreeViewItem.TreeArrow.MouseOver.Stroke}"/>
+                                <Setter Property="Fill" TargetName="ExpandPath" Value="{StaticResource TreeViewItem.TreeArrow.MouseOver.Fill}"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                    <Condition Property="IsChecked" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter Property="Stroke" TargetName="ExpandPath" Value="{StaticResource TreeViewItem.TreeArrow.MouseOver.Checked.Stroke}"/>
+                                <Setter Property="Fill" TargetName="ExpandPath" Value="{StaticResource TreeViewItem.TreeArrow.MouseOver.Checked.Fill}"/>
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="MultiSelectTreeViewItemStyle" TargetType="{x:Type TreeViewItem}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="HorizontalContentAlignment" Value="{Binding HorizontalContentAlignment, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"/>
+            <Setter Property="VerticalContentAlignment" Value="{Binding VerticalContentAlignment, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"/>
+            <Setter Property="Padding" Value="1,0,0,0"/>
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
+            <Setter Property="FocusVisualStyle" Value="{StaticResource TreeViewItemFocusVisual}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TreeViewItem}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition MinWidth="19" Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition/>
+                            </Grid.RowDefinitions>
+                            <ToggleButton 
+                                x:Name="Expander" 
+                                ClickMode="Press" 
+                                IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}" 
+                                Style="{StaticResource ExpandCollapseToggleStyle}"/>
+                            <Border 
+                                x:Name="Bd" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                Background="{TemplateBinding Background}" 
+                                Grid.Column="1" 
+                                Padding="{TemplateBinding Padding}" 
+                                SnapsToDevicePixels="true">
+                                <ContentPresenter 
+                                    x:Name="PART_Header" 
+                                    ContentSource="Header" 
+                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                    SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                            </Border>
+                            <ItemsPresenter 
+                                x:Name="ItemsHost" 
+                                Grid.ColumnSpan="2" 
+                                Grid.Column="1" 
+                                Grid.Row="1"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsExpanded" Value="false">
+                                <Setter Property="Visibility" TargetName="ItemsHost" Value="Collapsed"/>
+                            </Trigger>
+                            <Trigger Property="HasItems" Value="false">
+                                <Setter Property="Visibility" TargetName="Expander" Value="Hidden"/>
+                            </Trigger>
+                            <!--Trigger Property="IsSelected" Value="true"-->
+                            <Trigger Property="local:MultiSelectTreeView.IsItemSelected" Value="true">
+                                <Setter Property="Background" TargetName="Bd" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.HighlightTextBrushKey}}"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <!--Condition Property="IsSelected" Value="true"/-->
+                                    <Condition Property="local:MultiSelectTreeView.IsItemSelected" Value="true"/>
+                                    <Condition Property="IsSelectionActive" Value="false"/>
+                                </MultiTrigger.Conditions>
+                                <Setter Property="Background" TargetName="Bd" Value="{DynamicResource {x:Static SystemColors.InactiveSelectionHighlightBrushKey}}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}}"/>
+                            </MultiTrigger>
+                            <Trigger Property="IsEnabled" Value="false">
+                                <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="VirtualizingPanel.IsVirtualizing" Value="true">
+                    <Setter Property="ItemsPanel">
+                        <Setter.Value>
+                            <ItemsPanelTemplate>
+                                <VirtualizingStackPanel/>
+                            </ItemsPanelTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="3*"/>
@@ -19,78 +166,155 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <StackPanel Grid.Row="0"
-                Orientation="Horizontal" Margin="17,10,0,0" Grid.RowSpan="2" HorizontalAlignment="Left" Grid.Column="1" VerticalAlignment="Top">
+                Orientation="Horizontal" Margin="5,10,0,0" Grid.RowSpan="2" HorizontalAlignment="Left" Grid.Column="1" VerticalAlignment="Top" Height="85" Width="501">
             <Button Name="btnBeginAnalysis"
               Content="Analyze"
-              Click="btnBeginAnalysis_Click" Margin="12,0,12,0" Height="35" Width="67" VerticalAlignment="Stretch" FontFamily="Candara" />
+              Click="btnBeginAnalysis_Click" Margin="12,0,12,0" Height="47" Width="70" VerticalAlignment="Stretch" FontFamily="Candara" />
 
-            <StackPanel Width="400" Height="48">
-                <StackPanel Width="400" Height="20" Orientation="Horizontal" HorizontalAlignment="Left">
-                    <CheckBox Content="Basic Wall" HorizontalAlignment="Left"  Grid.Row="1" VerticalAlignment="Top" Margin="0,0,10,0"/>
-                    <CheckBox Content="Floor" HorizontalAlignment="Left"  Grid.Row="1" VerticalAlignment="Top" Margin="0,0,10,0"/>
-                    <CheckBox Content="Windows" HorizontalAlignment="Left"  Grid.Row="1" VerticalAlignment="Top" Margin="0,0,10,0"/>
-                    <CheckBox Content="Doors" HorizontalAlignment="Left"  Grid.Row="1" VerticalAlignment="Top" Margin="0,0,10,0"/>
-                </StackPanel>
-                <StackPanel Width="400" Height="20" Orientation="Horizontal" VerticalAlignment="Stretch" HorizontalAlignment="Left" Margin="0,10,0,0">
-                    <CheckBox Content="Curtain Panel" HorizontalAlignment="Left"  Grid.Row="1" VerticalAlignment="Top" Margin="0,0,10,0"/>
-                    <CheckBox Content="Curtain Mullion" HorizontalAlignment="Left"  Grid.Row="1" VerticalAlignment="Top" Margin="0,0,10,0"/>
-                    <CheckBox Content="Roof" HorizontalAlignment="Left"  Grid.Row="1" VerticalAlignment="Top" Margin="0,0,10,0"/>
-                    <CheckBox Content="Ceiling" HorizontalAlignment="Left"  Grid.Row="1" VerticalAlignment="Top" Margin="0,0,10,0"/>
-                </StackPanel>
+            <Button x:Name="btnRefresh"
+                    Content="Refresh"
+                    Click="btnRefresh_Click" Margin="12,0,12,0" Height="47" Width="70" VerticalAlignment="Stretch" FontFamily="Candara"/>
 
+            <Button x:Name="btnPrint"
+                    Content="Export"
+                    Click="btnPrint_Click" Margin="12,0,12,0" Height="47" Width="70" VerticalAlignment="Stretch" FontFamily="Candara"/>
+
+            <StackPanel Width="217" Height="61"
+                        
+                        >
+                <TextBlock Name ="process_info" TextWrapping="Wrap" Text=""/>
             </StackPanel>
 
 
 
+
         </StackPanel>
-        <Grid Margin="4,95,288,10" Name ="contentArea" Grid.Column="1" Grid.RowSpan="2">
+        <TabControl Name="Tabs1" TabStripPlacement="Top" Background="LightGray"  Margin="4,95,10,10" Grid.Column="1" Grid.RowSpan="2">
+            <TabItem Name ="TabCategory" Header="By Category" Background="Gray">
+                <Grid Margin="0,0,0,0" Name ="contentArea" Grid.Column="1" Grid.RowSpan="2">
 
-            <!-- TreeGrid "Control" -->
-            <Border x:Name="contentBorder" BorderBrush="Black" BorderThickness="1">
+                    <!-- TreeGrid "Control" -->
+                    <Border x:Name="contentBorder" BorderBrush="Black" BorderThickness="1">
 
-                <!-- Resources -->
-                <Border.Resources>
-                    <Style x:Key="TextBlockStyle" TargetType="{x:Type TextBlock}">
-                        <Setter Property="Margin" Value="3 0 3 0"/>
-                    </Style>
-                    <Style x:Key="TextBlockBoldStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource TextBlockStyle}">
-                        <Setter Property="FontWeight" Value="Bold"/>
-                    </Style>
-                </Border.Resources>
+                        <!-- Resources -->
+                        <Border.Resources>
+                            <Style x:Key="TextBlockStyle" TargetType="{x:Type TextBlock}">
+                                <Setter Property="Margin" Value="3 0 3 0"/>
+                            </Style>
+                            <Style x:Key="TextBlockBoldStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource TextBlockStyle}">
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </Style>
+                        </Border.Resources>
 
-                <!-- Content -->
-                <Grid Grid.IsSharedSizeScope="True">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition/>
-                    </Grid.RowDefinitions>
 
-                    <!-- Column headers -->
-                    <TreeViewItem Grid.Row="0" BorderThickness="1">
-                        <TreeViewItem.Header>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition SharedSizeGroup="Name"/>
-                                    <!-- Placeholders for two columns of ToggleButton -->
-                                    <ColumnDefinition SharedSizeGroup="Toggle"/>
-                                    <ColumnDefinition SharedSizeGroup="Toggle"/>
-                                    <ColumnDefinition SharedSizeGroup="Area"/>
-                                    <ColumnDefinition SharedSizeGroup="Notes"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="Name" Style="{StaticResource TextBlockBoldStyle}"/>
-                                <!-- Empty TreeViewItem to measure the size of its ToggleButton into the "Toggle" group-->
-                                <TreeViewItem Grid.Column="1" Padding="0"/>
-                                <TextBlock Grid.Column="3" Text="Area" Style="{StaticResource TextBlockBoldStyle}"/>
-                                <TextBlock Grid.Column="4" Text="Notes" Style="{StaticResource TextBlockBoldStyle}"/>
-                            </Grid>
-                        </TreeViewItem.Header>
-                    </TreeViewItem>
+                        <!-- Content -->
+                        <Grid Grid.IsSharedSizeScope="True">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition/>
+                            </Grid.RowDefinitions>
 
-                    <!-- Data rows -->
-                    <TreeView Grid.Row="1" ItemsSource="{Binding DataDetails}" BorderBrush="Gray" BorderThickness="0 1 0 0">
+                            <!-- Column headers -->
+                            <TreeViewItem Grid.Row="0" BorderThickness="1">
+                                <TreeViewItem.Header>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition SharedSizeGroup="Name"/>
+                                            <!-- Placeholders for two columns of ToggleButton -->
+                                            <ColumnDefinition SharedSizeGroup="Toggle"/>
+                                            <ColumnDefinition SharedSizeGroup="Toggle"/>
+                                            <ColumnDefinition SharedSizeGroup="Area"/>
+                                            <ColumnDefinition SharedSizeGroup="Color"/>
+                                            <ColumnDefinition SharedSizeGroup="Notes" Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Name" Style="{StaticResource TextBlockBoldStyle}"/>
+                                        <!-- Empty TreeViewItem to measure the size of its ToggleButton into the "Toggle" group-->
+                                        <TreeViewItem Grid.Column="1" Padding="1"/>
+                                        <TextBlock Grid.Column="3" Text="Area" Style="{StaticResource TextBlockBoldStyle}"/>
+                                        <TextBlock Grid.Column="4" Text="Color" Style="{StaticResource TextBlockBoldStyle}"/>
+                                        <TextBlock Grid.Column="5" Text="Notes" Style="{StaticResource TextBlockBoldStyle}"/>
+                                    </Grid>
+                                </TreeViewItem.Header>
+                            </TreeViewItem>
+
+                            <local:MultiSelectTreeView
+                        x:Name="multiSelectTreeView"
+                        Grid.Row="1"
+                        BorderBrush="Gray" BorderThickness="0 1 0 0"
+                        ItemContainerStyle="{StaticResource MultiSelectTreeViewItemStyle}"
+                        ItemsSource="{Binding DataDetails}">
+                                <local:MultiSelectTreeView.ItemTemplate>
+                                    <!-- Level 0 template leaves space for 2 child "Toggle" levels -->
+                                    <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition SharedSizeGroup="Name"/>
+                                                <ColumnDefinition SharedSizeGroup="Toggle"/>
+                                                <ColumnDefinition SharedSizeGroup="Toggle"/>
+                                                <ColumnDefinition SharedSizeGroup="Area"/>
+                                                <ColumnDefinition SharedSizeGroup="Color"/>
+                                                <ColumnDefinition SharedSizeGroup="Notes"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding Name}" Style="{StaticResource TextBlockStyle}"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding Area}" Style="{StaticResource TextBlockStyle}"/>
+                                            <TextBlock Grid.Column="4" Text="   " Background="{Binding Background}" Style="{StaticResource TextBlockStyle}"/>
+                                            <TextBlock Grid.Column="5" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
+                                        </Grid>
+
+                                        <!-- Level 1 template leaves space for 1 child "Toggle" level -->
+                                        <HierarchicalDataTemplate.ItemTemplate>
+                                            <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition SharedSizeGroup="Name"/>
+                                                        <ColumnDefinition/>
+                                                        <ColumnDefinition SharedSizeGroup="Toggle"/>
+                                                        <ColumnDefinition SharedSizeGroup="Area"/>
+                                                        <ColumnDefinition SharedSizeGroup="Color"/>
+                                                        <ColumnDefinition SharedSizeGroup="Notes"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="{Binding Name}" Style="{StaticResource TextBlockStyle}"/>
+                                                    <TextBlock Grid.Column="3" Text="{Binding Area}" Style="{StaticResource TextBlockStyle}"/>
+                                                    <TextBlock Grid.Column="4" Text="   " Background="{Binding Background}" Style="{StaticResource TextBlockStyle}"/>
+                                                    <TextBlock Grid.Column="5" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
+                                                </Grid>
+
+                                                <!-- Level 2 template has no children -->
+                                                <HierarchicalDataTemplate.ItemTemplate>
+                                                    <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition SharedSizeGroup="Name"/>
+                                                                <ColumnDefinition/>
+                                                                <ColumnDefinition/>
+                                                                <ColumnDefinition SharedSizeGroup="Area"/>
+                                                                <ColumnDefinition SharedSizeGroup="Color"/>
+                                                                <ColumnDefinition SharedSizeGroup="Notes"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Grid.Column="0" Text="{Binding Name}" Style="{StaticResource TextBlockStyle}"/>
+                                                            <TextBlock Grid.Column="3" Text="{Binding Area}" Style="{StaticResource TextBlockStyle}"/>
+                                                            <TextBlock Grid.Column="4" Text="   " Background="{Binding Background}" Style="{StaticResource TextBlockStyle}"/>
+                                                            <TextBlock Grid.Column="5" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
+                                                        </Grid>
+                                                    </HierarchicalDataTemplate>
+                                                </HierarchicalDataTemplate.ItemTemplate>
+                                            </HierarchicalDataTemplate>
+                                        </HierarchicalDataTemplate.ItemTemplate>
+                                    </HierarchicalDataTemplate>
+                                </local:MultiSelectTreeView.ItemTemplate>
+                            </local:MultiSelectTreeView>
+
+
+
+
+
+                            <!-- Data rows -->
+                            <!--<TreeView Grid.Row="1" ItemsSource="{Binding DataDetails}" Name="tv_items"  SelectedItemChanged="TreeView_SelectedItemChanged" BorderBrush="Gray" BorderThickness="0 1 0 0">
                         <TreeView.ItemTemplate>
 
+                            -->
                             <!-- Level 0 template leaves space for 2 child "Toggle" levels -->
+                            <!--
                             <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -98,14 +322,18 @@
                                         <ColumnDefinition SharedSizeGroup="Toggle"/>
                                         <ColumnDefinition SharedSizeGroup="Toggle"/>
                                         <ColumnDefinition SharedSizeGroup="Area"/>
+                                        <ColumnDefinition SharedSizeGroup="Color"/>
                                         <ColumnDefinition SharedSizeGroup="Notes"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="{Binding Name}" Style="{StaticResource TextBlockStyle}"/>
                                     <TextBlock Grid.Column="3" Text="{Binding Area}" Style="{StaticResource TextBlockStyle}"/>
-                                    <TextBlock Grid.Column="4" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
+                                    <TextBlock Grid.Column="4" Text="{Binding Color}" Style="{StaticResource TextBlockStyle}"/>
+                                    <TextBlock Grid.Column="5" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
                                 </Grid>
 
-                                <!-- Level 1 template leaves space for 1 child "Toggle" level -->
+                                -->
+                            <!-- Level 1 template leaves space for 1 child "Toggle" level -->
+                            <!--
                                 <HierarchicalDataTemplate.ItemTemplate>
                                     <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                                         <Grid>
@@ -114,14 +342,18 @@
                                                 <ColumnDefinition/>
                                                 <ColumnDefinition SharedSizeGroup="Toggle"/>
                                                 <ColumnDefinition SharedSizeGroup="Area"/>
+                                                <ColumnDefinition SharedSizeGroup="Color"/>
                                                 <ColumnDefinition SharedSizeGroup="Notes"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="{Binding Name}" Style="{StaticResource TextBlockStyle}"/>
                                             <TextBlock Grid.Column="3" Text="{Binding Area}" Style="{StaticResource TextBlockStyle}"/>
-                                            <TextBlock Grid.Column="4" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
+                                            <TextBlock Grid.Column="4" Text="{Binding Color}" Style="{StaticResource TextBlockStyle}"/>
+                                            <TextBlock Grid.Column="5" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
                                         </Grid>
 
-                                        <!-- Level 2 template has no children -->
+                                        -->
+                            <!-- Level 2 template has no children -->
+                            <!--
                                         <HierarchicalDataTemplate.ItemTemplate>
                                             <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                                                 <Grid>
@@ -130,11 +362,13 @@
                                                         <ColumnDefinition/>
                                                         <ColumnDefinition/>
                                                         <ColumnDefinition SharedSizeGroup="Area"/>
+                                                        <ColumnDefinition SharedSizeGroup="Color"/>
                                                         <ColumnDefinition SharedSizeGroup="Notes"/>
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Grid.Column="0" Text="{Binding Name}" Style="{StaticResource TextBlockStyle}"/>
                                                     <TextBlock Grid.Column="3" Text="{Binding Area}" Style="{StaticResource TextBlockStyle}"/>
-                                                    <TextBlock Grid.Column="4" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
+                                                    <TextBlock Grid.Column="4" Text="{Binding Color}" Style="{StaticResource TextBlockStyle}"/>
+                                                    <TextBlock Grid.Column="5" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
                                                 </Grid>
                                             </HierarchicalDataTemplate>
                                         </HierarchicalDataTemplate.ItemTemplate>
@@ -142,24 +376,283 @@
                                 </HierarchicalDataTemplate.ItemTemplate>
                             </HierarchicalDataTemplate>
                         </TreeView.ItemTemplate>
-                    </TreeView>
+                    </TreeView>-->
+                        </Grid>
+                    </Border>
+
                 </Grid>
-            </Border>
+            </TabItem>
+            <TabItem Name="TabMaterial" Header="By Material" Background="Gray">
+                <Grid Margin="0,0,0,0" Name ="materialArea" Grid.Column="1" Grid.RowSpan="2">
 
-        </Grid>
+                    <!-- TreeGrid "Control" -->
+                    <Border x:Name="border2" BorderBrush="Black" BorderThickness="1">
 
+                        <!-- Resources -->
+                        <Border.Resources>
+                            <Style x:Key="TextBlockStyle" TargetType="{x:Type TextBlock}">
+                                <Setter Property="Margin" Value="3 0 3 0"/>
+                            </Style>
+                            <Style x:Key="TextBlockBoldStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource TextBlockStyle}">
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </Style>
+                        </Border.Resources>
+
+
+                        <!-- Content -->
+                        <Grid Grid.IsSharedSizeScope="True">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Column headers -->
+                            <TreeViewItem Grid.Row="0" BorderThickness="1">
+                                <TreeViewItem.Header>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition SharedSizeGroup="Name"/>
+                                            <!-- Placeholders for two columns of ToggleButton -->
+                                            <ColumnDefinition SharedSizeGroup="Toggle"/>
+                                            <ColumnDefinition SharedSizeGroup="Toggle"/>
+                                            <ColumnDefinition SharedSizeGroup="Area"/>
+                                            <ColumnDefinition SharedSizeGroup="Color"/>
+                                            <ColumnDefinition SharedSizeGroup="Notes" Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Name" Style="{StaticResource TextBlockBoldStyle}"/>
+                                        <!-- Empty TreeViewItem to measure the size of its ToggleButton into the "Toggle" group-->
+                                        <TreeViewItem Grid.Column="1" Padding="1"/>
+                                        <TextBlock Grid.Column="3" Text="Area" Style="{StaticResource TextBlockBoldStyle}"/>
+                                        <TextBlock Grid.Column="4" Text="Color" Style="{StaticResource TextBlockBoldStyle}"/>
+                                        <TextBlock Grid.Column="5" Text="Notes" Style="{StaticResource TextBlockBoldStyle}"/>
+                                    </Grid>
+                                </TreeViewItem.Header>
+                            </TreeViewItem>
+
+                            <local:MultiSelectTreeView
+                        x:Name="multiSelectTreeView_byMaterial"
+                        Grid.Row="1"
+                        BorderBrush="Gray" BorderThickness="0 1 0 0"
+                        ItemContainerStyle="{StaticResource MultiSelectTreeViewItemStyle}"
+                        ItemsSource="{Binding DataByMaterial}">
+                                <local:MultiSelectTreeView.ItemTemplate>
+                                    <!-- Level 0 template leaves space for 2 child "Toggle" levels -->
+                                    <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition SharedSizeGroup="Name"/>
+                                                <ColumnDefinition SharedSizeGroup="Toggle"/>
+                                                <ColumnDefinition SharedSizeGroup="Toggle"/>
+                                                <ColumnDefinition SharedSizeGroup="Area"/>
+                                                <ColumnDefinition SharedSizeGroup="Color"/>
+                                                <ColumnDefinition SharedSizeGroup="Notes"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding Name}" Style="{StaticResource TextBlockStyle}"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding Area}" Style="{StaticResource TextBlockStyle}"/>
+                                            <TextBlock Grid.Column="4" Text="   " Background="{Binding Background}" Style="{StaticResource TextBlockStyle}"/>
+                                            <TextBlock Grid.Column="5" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
+                                        </Grid>
+
+                                        <!-- Level 1 template leaves space for 1 child "Toggle" level -->
+                                        <HierarchicalDataTemplate.ItemTemplate>
+                                            <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition SharedSizeGroup="Name"/>
+                                                        <ColumnDefinition/>
+                                                        <ColumnDefinition SharedSizeGroup="Toggle"/>
+                                                        <ColumnDefinition SharedSizeGroup="Area"/>
+                                                        <ColumnDefinition SharedSizeGroup="Color"/>
+                                                        <ColumnDefinition SharedSizeGroup="Notes"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="{Binding Name}" Style="{StaticResource TextBlockStyle}"/>
+                                                    <TextBlock Grid.Column="3" Text="{Binding Area}" Style="{StaticResource TextBlockStyle}"/>
+                                                    <TextBlock Grid.Column="4" Text="   " Background="{Binding Background}" Style="{StaticResource TextBlockStyle}"/>
+                                                    <TextBlock Grid.Column="5" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
+                                                </Grid>
+                                            </HierarchicalDataTemplate>
+                                        </HierarchicalDataTemplate.ItemTemplate>
+                                    </HierarchicalDataTemplate>
+                                </local:MultiSelectTreeView.ItemTemplate>
+                            </local:MultiSelectTreeView>
+                        </Grid>
+                    </Border>
+
+                </Grid>
+            </TabItem>
+            <TabItem Name="TabWWR" Header="By Transparency(WWR)" Background="Gray">
+                <Grid Margin="0,0,0,0" Name ="transparentArea" Grid.Column="1" Grid.RowSpan="2">
+
+                    <!-- TreeGrid "Control" -->
+                    <Border x:Name="border3" BorderBrush="Black" BorderThickness="1">
+
+                        <!-- Resources -->
+                        <Border.Resources>
+                            <Style x:Key="TextBlockStyle" TargetType="{x:Type TextBlock}">
+                                <Setter Property="Margin" Value="3 0 3 0"/>
+                            </Style>
+                            <Style x:Key="TextBlockBoldStyle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource TextBlockStyle}">
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </Style>
+                        </Border.Resources>
+
+
+                        <!-- Content -->
+                        <Grid Grid.IsSharedSizeScope="True">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Column headers -->
+                            <TreeViewItem Grid.Row="0" BorderThickness="1">
+                                <TreeViewItem.Header>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition SharedSizeGroup="Name"/>
+                                            <!-- Placeholders for two columns of ToggleButton -->
+                                            <ColumnDefinition SharedSizeGroup="Toggle"/>
+                                            <ColumnDefinition SharedSizeGroup="Toggle"/>
+                                            <ColumnDefinition SharedSizeGroup="Toggle"/>
+                                            <ColumnDefinition SharedSizeGroup="Area"/>
+                                            <ColumnDefinition SharedSizeGroup="Color"/>
+                                            <ColumnDefinition SharedSizeGroup="Notes" Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Name" Style="{StaticResource TextBlockBoldStyle}"/>
+                                        <!-- Empty TreeViewItem to measure the size of its ToggleButton into the "Toggle" group-->
+                                        <TreeViewItem Grid.Column="1" Padding="1"/>
+                                        <TextBlock Grid.Column="4" Text="Area" Style="{StaticResource TextBlockBoldStyle}"/>
+                                        <TextBlock Grid.Column="5" Text="Color" Style="{StaticResource TextBlockBoldStyle}"/>
+                                        <TextBlock Grid.Column="6" Text="Notes" Style="{StaticResource TextBlockBoldStyle}"/>
+                                    </Grid>
+                                </TreeViewItem.Header>
+                            </TreeViewItem>
+
+                            <local:MultiSelectTreeView
+                        x:Name="multiSelectTreeView_byTransparency"
+                        Grid.Row="1"
+                        BorderBrush="Gray" BorderThickness="0 1 0 0"
+                        ItemContainerStyle="{StaticResource MultiSelectTreeViewItemStyle}"
+                        ItemsSource="{Binding DataByTransparency}">
+                                <local:MultiSelectTreeView.ItemTemplate>
+                                    <!-- Level 0 template leaves space for 2 child "Toggle" levels -->
+                                    <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition SharedSizeGroup="Name"/>
+                                                <ColumnDefinition SharedSizeGroup="Toggle"/>
+                                                <ColumnDefinition SharedSizeGroup="Toggle"/>
+                                                <ColumnDefinition SharedSizeGroup="Toggle"/>
+                                                <ColumnDefinition SharedSizeGroup="Area"/>
+                                                <ColumnDefinition SharedSizeGroup="Color"/>
+                                                <ColumnDefinition SharedSizeGroup="Notes"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding Name}" Style="{StaticResource TextBlockStyle}"/>
+                                            <TextBlock Grid.Column="4" Text="{Binding Area}" Style="{StaticResource TextBlockStyle}"/>
+                                            <TextBlock Grid.Column="5" Text="   " Background="{Binding Background}" Style="{StaticResource TextBlockStyle}"/>
+                                            <TextBlock Grid.Column="6" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
+                                        </Grid>
+
+                                        <!-- Level 1 template leaves space for 2 child "Toggle" level -->
+                                        <HierarchicalDataTemplate.ItemTemplate>
+                                            <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition SharedSizeGroup="Name"/>
+                                                        <ColumnDefinition/>
+                                                        <ColumnDefinition SharedSizeGroup="Toggle"/>
+                                                        <ColumnDefinition SharedSizeGroup="Toggle"/>
+                                                        <ColumnDefinition SharedSizeGroup="Area"/>
+                                                        <ColumnDefinition SharedSizeGroup="Color"/>
+                                                        <ColumnDefinition SharedSizeGroup="Notes"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="{Binding Name}" Style="{StaticResource TextBlockStyle}"/>
+                                                    <TextBlock Grid.Column="4" Text="{Binding Area}" Style="{StaticResource TextBlockStyle}"/>
+                                                    <TextBlock Grid.Column="5" Text="   " Background="{Binding Background}" Style="{StaticResource TextBlockStyle}"/>
+                                                    <TextBlock Grid.Column="6" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
+                                                </Grid>
+                                                <!-- Level 2 template has no children -->
+                                                <HierarchicalDataTemplate.ItemTemplate>
+                                                    <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition SharedSizeGroup="Name"/>
+                                                                <ColumnDefinition/>
+                                                                <ColumnDefinition/>
+
+                                                                <ColumnDefinition SharedSizeGroup="Toggle"/>
+                                                                <ColumnDefinition SharedSizeGroup="Area"/>
+                                                                <ColumnDefinition SharedSizeGroup="Color"/>
+                                                                <ColumnDefinition SharedSizeGroup="Notes"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Grid.Column="0" Text="{Binding Name}" Style="{StaticResource TextBlockStyle}"/>
+                                                            <TextBlock Grid.Column="4" Text="{Binding Area}" Style="{StaticResource TextBlockStyle}"/>
+                                                            <TextBlock Grid.Column="5" Text="   " Background="{Binding Background}" Style="{StaticResource TextBlockStyle}"/>
+                                                            <TextBlock Grid.Column="6" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
+                                                        </Grid>
+                                                        <HierarchicalDataTemplate.ItemTemplate>
+                                                            <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition SharedSizeGroup="Name"/>
+                                                                        <ColumnDefinition/>
+                                                                        <ColumnDefinition/>
+                                                                        <ColumnDefinition/>
+                                                                        <ColumnDefinition SharedSizeGroup="Area"/>
+                                                                        <ColumnDefinition SharedSizeGroup="Color"/>
+                                                                        <ColumnDefinition SharedSizeGroup="Notes"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock Grid.Column="0" Text="{Binding Name}" Style="{StaticResource TextBlockStyle}"/>
+                                                                    <TextBlock Grid.Column="4" Text="{Binding Area}" Style="{StaticResource TextBlockStyle}"/>
+                                                                    <TextBlock Grid.Column="5" Text="   " Background="{Binding Background}" Style="{StaticResource TextBlockStyle}"/>
+                                                                    <TextBlock Grid.Column="6" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
+                                                                </Grid>
+                                                            </HierarchicalDataTemplate>
+                                                        </HierarchicalDataTemplate.ItemTemplate>
+                                                    </HierarchicalDataTemplate>
+                                                </HierarchicalDataTemplate.ItemTemplate>
+                                            </HierarchicalDataTemplate>
+                                        </HierarchicalDataTemplate.ItemTemplate>
+
+                                    </HierarchicalDataTemplate>
+                                </local:MultiSelectTreeView.ItemTemplate>
+                            </local:MultiSelectTreeView>
+                        </Grid>
+                    </Border>
+
+                </Grid>
+            </TabItem>
+        </TabControl>
         <StackPanel Grid.Row="0"
-            Orientation="Horizontal" Margin="0,10,10,0" Grid.RowSpan="2" HorizontalAlignment="Right" Grid.Column="1" VerticalAlignment="Top">
+            Orientation="Horizontal" Margin="0,10,10,0" Grid.RowSpan="3" HorizontalAlignment="Right" Grid.Column="1" VerticalAlignment="Top">
             <Button x:Name="btnSelectItem"
                 Content="Select"
                 Click="btnSelect_Click" Margin="12,0,12,0" Height="35" Width="67" VerticalAlignment="Stretch" FontFamily="Candara" />
             <Button x:Name="btnHideItem"
                 Content="Hide"
                 Click="btnHide_Click" Margin="12,0,12,0" Height="35" Width="67" VerticalAlignment="Stretch" FontFamily="Candara" />
-            <Button x:Name="btnHighlightSelected1"
-                Content="Highlight"
-                Click="btnHighlightSelected_Click" Margin="12,0,12,0" Height="35" Width="67" VerticalAlignment="Stretch" FontFamily="Candara" HorizontalAlignment="Stretch" />
+            <Button x:Name="btnFilterItem"
+                Content="Color"
+                Click="btnFilter_Click" Margin="12,0,12,0" Height="35" Width="67" VerticalAlignment="Stretch" FontFamily="Candara" />
+
         </StackPanel>
+
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal" Margin="0,60,10,0" HorizontalAlignment="Right" Grid.Column="1" VerticalAlignment="Top">
+            <Button x:Name="btnClearAll"
+                    Content="Clear All"
+                    Click="btnClearAll_Click" Margin="12,0,12,0" Height="35" Width="67" VerticalAlignment="Stretch" FontFamily="Candara" HorizontalAlignment="Right"/>
+
+            <Button x:Name="btnUnhideSelected"
+                    Content="Unhide"
+                    Click="btnUnhideSelected_Click" Margin="12,0,12,0" Height="35" Width="67" VerticalAlignment="Stretch" FontFamily="Candara" HorizontalAlignment="Right"/>
+            <Button x:Name="btnClearSelected"
+                    Content="Uncolor"
+                    Click="btnClearSelected_Click" Margin="12,0,12,0" Height="35" Width="67" VerticalAlignment="Stretch" FontFamily="Candara" HorizontalAlignment="Right"/>
+
+        </StackPanel>
+
+
 
 
     </Grid>

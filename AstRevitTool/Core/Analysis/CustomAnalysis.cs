@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+using Microsoft.Office.Interop.Excel;
 
 namespace AstRevitTool.Core.Analysis
 {
@@ -14,6 +15,8 @@ namespace AstRevitTool.Core.Analysis
         public Dictionary<BuiltInCategory, List<FilteredData>> AnalyzedData { get; set; } = new Dictionary<BuiltInCategory, List<FilteredData>>();
 
         public List<FilteredInfo> AnalyzedMaterial { get; set; } = new List<FilteredInfo>();
+
+        public List<FilteredMaterial> AllMaterial { get; set; } = new List<FilteredMaterial>();
         public class DataTypes : List<DataType>
         {
             public DataTypes(Dictionary<BuiltInCategory, List<FilteredData>> analyzedData)
@@ -37,9 +40,14 @@ namespace AstRevitTool.Core.Analysis
                 Category = dataItem.Value[0].Category;
                 CategoryName = Category.Name;
                 filteredData = dataItem.Value;
+                Doc = dataItem.Value[0].PrimaryDoc;
+                BIC = dataItem.Key;
             }
+            public Document Doc { get; set; }
             public Category Category { get; set; }
             public string CategoryName { get; set; }
+
+            public BuiltInCategory BIC { get; set; }
             public List<FilteredData> filteredData { get; set; }
             public double GetArea()
             {
@@ -55,13 +63,14 @@ namespace AstRevitTool.Core.Analysis
             BuiltInCategory.OST_Roofs,
             BuiltInCategory.OST_Ceilings,
             //BuiltInCategory.OST_Railings,
-            //BuiltInCategory.OST_CurtainWallMullions,
+            BuiltInCategory.OST_CurtainWallMullions,
             BuiltInCategory.OST_Windows,
             BuiltInCategory.OST_Doors
         };
 
         private ICollection<Element> MyElements = new List<Element>();
         private List<FilteredInfo> MyInfo = new List<FilteredInfo>();
+        private Material defaultMat = null;
         
 
         public CustomAnalysis(ElementsVisibleInViewExportContext context, Autodesk.Revit.ApplicationServices.Application app)
@@ -90,6 +99,20 @@ namespace AstRevitTool.Core.Analysis
             }
         }
         
+        private bool StackedWallEligible(Wall wall, IList<Element> allwalls)
+        {
+            bool result = true;
+            if(!wall.IsStackedWall) return false;
+            foreach (var eid in wall.GetStackedWallMemberIds())
+            {
+                if (!allwalls.Select(x => x.Id).Contains(eid))
+                {
+                    return false;
+                }
+
+            }
+            return result;
+        }
         public void Extraction()
         {
             //Must-include categories
@@ -115,6 +138,14 @@ namespace AstRevitTool.Core.Analysis
                     if (Context.get_ElementVisible(d, e.Id))
                     {
                         allwalls.Add(e);
+                    }
+                }
+                foreach(var ele in walls)
+                {
+                    Wall wall = ele as Wall;
+                    if (wall !=null && wall.IsStackedWall && StackedWallEligible(wall,walls))
+                    {
+                        allwalls.Remove(wall);
                     }
                 }
                 foreach (Element e in cpanels)
@@ -158,18 +189,22 @@ namespace AstRevitTool.Core.Analysis
         private void process_category(HashSet<Element> set,BuiltInCategory category)
         {
             Dictionary<ElementId,HashSet<Element>> typesubset = new Dictionary<ElementId, HashSet<Element>>();
-
+            Dictionary<ElementId, Element> types = new Dictionary<ElementId, Element>();
             //grouping subset by typeid
             foreach (Element e in set)
             {
+                //avoid stacked wall
+                
                 ElementId typeid = e.GetTypeId();
                 if (typesubset.ContainsKey(typeid))
                 {
                     typesubset[typeid].Add(e);
+                    types[typeid] = e;
                 }
                 else
                 {
                     typesubset.Add(typeid, new HashSet<Element>());
+                    types.Add(typeid, e);
                     typesubset[typeid].Add(e);
                 }
             }
@@ -178,8 +213,11 @@ namespace AstRevitTool.Core.Analysis
             foreach(KeyValuePair<ElementId,HashSet<Element>> kvp in typesubset)
             {
                 ElementId typeid = kvp.Key;
+                Element currentType = types[typeid];
                 HashSet<Element> elements = kvp.Value;
                 double area = 0.0;
+
+                
 
                 //Calculate area for doors or windows
                 foreach (Element e in elements)
@@ -191,7 +229,7 @@ namespace AstRevitTool.Core.Analysis
                             FamilyInstance fInstance = e as FamilyInstance;
                             area += AnalysisUtils.GetInstanceSurfaceAreaMetric(fInstance);
                         }
-                        else if(category == BuiltInCategory.OST_CurtainWallMullions || category == BuiltInCategory.OST_Railings)
+                        else if(category == BuiltInCategory.OST_Railings)
                         {
 
                         }
@@ -207,9 +245,17 @@ namespace AstRevitTool.Core.Analysis
                 FilteredData data = new FilteredData(typeid.ToString(), area, elements,this.AnalyzedMaterial,category);
                 this.AnalyzedMaterial = data.materialPool;
 
-                data.TypeMark = data.PrimaryDoc.GetElement(typeid)?.get_Parameter(BuiltInParameter.ALL_MODEL_TYPE_MARK)?.AsString();
+                data.Type = data.PrimaryDoc.GetElement(typeid);
+                FamilySymbol panelSymbol = data.PrimaryDoc.GetElement(typeid) as FamilySymbol;
+                if(panelSymbol != null)
+                {
+                    data.Family = panelSymbol;
+                }
+                data.TypeMark = data.PrimaryDoc.GetElement(typeid)?.get_Parameter(BuiltInParameter.ALL_MODEL_TYPE_COMMENTS)?.AsString();
                 data.Category = data.PrimaryDoc.GetElement(typeid)?.Category;
                 data.TypeName = data.PrimaryDoc.GetElement(typeid)?.Name;
+
+
 
                 AnalyzedData[category].Add(data);
                 MyInfo.Add(data);
@@ -222,6 +268,27 @@ namespace AstRevitTool.Core.Analysis
             {
                 process_category(kvp.Value, kvp.Key);
             }
+
+            foreach(var material in this.AnalyzedMaterial)
+            {
+                FilteredMaterial mat = material as FilteredMaterial;
+                if(mat.RevitMaterial == null)
+                {
+                    continue;
+                }
+                mat.Area = 0;
+
+                
+                mat.FilteredElements = new HashSet<Element>();
+                foreach(var uniqueType in mat.typeArea.Keys)
+                {
+                    mat.Area += mat.typeArea[uniqueType];
+                    mat.FilteredElements.UnionWith(mat.typeElement[uniqueType]);
+
+                }
+                AllMaterial.Add(mat);              
+            }
+
             DataTypes types = new DataTypes(this.AnalyzedData);
             types.Name = this.Context.MainDoc.Title;
             this.DataTree = types;

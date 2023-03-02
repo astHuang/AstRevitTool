@@ -59,7 +59,77 @@ namespace AstRevitTool.Core.Export
             }
             return bb;
         }
-        public class buildingJson
+
+        public class objectJson
+        {
+            public objectJson() { }
+            public string toJsonString()
+            {
+                return JsonConvert.SerializeObject(this, Formatting.Indented);
+            }
+        }
+
+        public class unitMatrixJson : objectJson
+        {
+            public Newtonsoft.Json.Linq.JRaw[] rooms;
+            public unitMatrixJson() { }
+            public unitMatrixJson(IEnumerable<roomJson> rooms)
+            {
+                this.rooms = rooms.Select(x => new Newtonsoft.Json.Linq.JRaw(x.toJsonString())).ToArray();
+            }
+        }
+
+        public class roomJson: objectJson
+        {
+            public string roomName;
+            public string roomId;
+            public double roomArea;
+            public double ajustedRoomArea { get; set; }
+            public Newtonsoft.Json.Linq.JRaw[] walls;
+            public roomJson() { }
+            public roomJson(Room room, IEnumerable<wallJson> walls)
+            {
+                this.roomName = room.Name;
+                this.roomId = room.Id.ToString();
+                this.roomArea = room.Area;
+                this.walls = walls.Select(x => new Newtonsoft.Json.Linq.JRaw(x.toJsonString())).ToArray();
+            }
+        }
+
+        public class wallJson: objectJson
+        {
+            public string wallDescription;
+            public string wallId;
+            public double wallLength;
+            public double wallWidth;
+            public wallJson()
+            {
+
+            }
+            public wallJson(Wall wall,double adjacentLength)
+            {
+                this.wallDescription = Util.ElementDescription(wall);
+                this.wallId = wall.Id.ToString();
+                this.wallLength = adjacentLength;
+                this.wallWidth = wall.Width;
+            }
+        }
+
+        public class extWallJson : wallJson
+        {
+            public double[] widthList;
+            public string[] materialList;
+            public MaterialFunctionAssignment[] functionList;
+            public double effectiveWidth;
+            public extWallJson(Wall wall, double adjLength, double[] widthList, string[] materialList, MaterialFunctionAssignment[] functionList, double effectiveWidth) : base(wall,adjLength)
+            {
+                this.widthList = widthList;
+                this.materialList = materialList;
+                this.functionList = functionList;
+                this.effectiveWidth = effectiveWidth;
+            }
+        }
+        public class buildingJson: objectJson
         {
             public string title;
             public int totalArea;
@@ -72,14 +142,9 @@ namespace AstRevitTool.Core.Export
                 this.totalArea = floors.Sum(x => x.boundaryArea);
                 this.totalLevel = floors.Count();
                 this.levels = floors.Select(x => new Newtonsoft.Json.Linq.JRaw(x.toJsonString())).ToArray();
-            }
-
-            public string toJsonString()
-            {
-                return JsonConvert.SerializeObject(this, Formatting.Indented);
-            }
+            }          
         }
-        public class floorJson
+        public class floorJson: objectJson
         {
             public string label = "";
             public string viewBox = "0 0 " + _target_width_size.ToString() + " " + _target_height_size.ToString();
@@ -96,14 +161,10 @@ namespace AstRevitTool.Core.Export
                 this.locations = locations.Select(x => new Newtonsoft.Json.Linq.JRaw(x.toJsonString())).ToArray();
                 this._locations = locations.ToList();
             }
-
-            public string toJsonString()
-            {
-                return JsonConvert.SerializeObject(this,Formatting.Indented);
-            }
+           
         }
 
-        public class locationJson
+        public class locationJson: objectJson
         {
             public string name = "";
             public string id = "";
@@ -123,12 +184,6 @@ namespace AstRevitTool.Core.Export
                 this.area = area;
                 this.space_id = space_id;
                 this.boma_exclusion= exclusion;
-            }
-
-
-            public string toJsonString()
-            {
-                return JsonConvert.SerializeObject(this,Formatting.Indented);
             }
 
         }
@@ -154,6 +209,7 @@ namespace AstRevitTool.Core.Export
 
         public static List<ElementId> uniqueLevelIdsInSchedule(ViewSchedule vs, Document doc)
         {
+            List<Element> levels = new List<Element>();
             List<ElementId> levelList = new List<ElementId>();
             List<Element> elems = new FilteredElementCollector(doc, vs.Id)
             .ToElements()
@@ -166,9 +222,12 @@ namespace AstRevitTool.Core.Export
                     levelList.Add(area.Level.Id);
                 }
             }
-            return levelList.Distinct().ToList();
+            List<ElementId> uniqueLevels = levelList.Distinct().ToList();
+            var sortedLevels = uniqueLevels.OrderBy(uniqueLevels => ((Level)doc.GetElement(uniqueLevels)).Elevation).ToList();
+            return sortedLevels;
 
         }
+        
         public List<List<Curve>> roomsBounds(List<Area> areas)
         {
             List<List<Curve>> allcrvs = new List<List<Curve>>();
@@ -396,11 +455,7 @@ namespace AstRevitTool.Core.Export
             {
                 Curve curve = seg.GetCurve();
                 IList<XYZ> pts = curve.Tessellate();
-
-                // Todo: handle non-linear curve.
-                // Especially: if two long lines have a 
-                // short arc in between them, skip the arc
-                // and extend both lines.
+              
 
                 p = curve.GetEndPoint(0);
                 q = curve.GetEndPoint(1);

@@ -12,8 +12,11 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using AstRevitTool.Core.Analysis;
+using AstRevitTool.Views;
 using BoundarySegment = Autodesk.Revit.DB.BoundarySegment;
-
+using Microsoft.Office.Interop.Excel;
+using OfficeOpenXml;
+using OfficeOpenXml.Style;
 
 namespace AstRevitTool.Core.Export
 {
@@ -40,12 +43,166 @@ namespace AstRevitTool.Core.Export
         public static void ExportView3D(Document maindoc, Autodesk.Revit.DB.View view, UIApplication uiapp, out ElementsVisibleInViewExportContext context_)
         {
             ElementsVisibleInViewExportContext context = new ElementsVisibleInViewExportContext(maindoc);
-            context.UIApp= uiapp;
+            //context.UIApp= uiapp;
             CustomExporter exporter = new CustomExporter(maindoc, context);
             exporter.Export(view);
             context_ = context;
         }
 
+        public static void ExportView3D(Document maindoc, Autodesk.Revit.DB.View view, out ElementsVisibleInViewExportContext context_)
+        {
+            ElementsVisibleInViewExportContext context = new ElementsVisibleInViewExportContext(maindoc);
+            CustomExporter exporter = new CustomExporter(maindoc, context);
+            exporter.Export(view);
+            context_ = context;
+        }
+        public static void WriteExcelFromModel(string fileName, bool exportRvtData, ViewModelByCategory model)
+        {
+            if(Directory.Exists(fileName))
+            {
+                Directory.Delete(fileName, false) ;
+            }
+            using (ExcelPackage excelPackage = new ExcelPackage(new FileInfo(fileName)))
+            {
+                ExcelWorksheet worksheet1 = null;
+                ExcelWorksheet worksheet2 = null;
+                ExcelWorksheet worksheet3 = null;
+                if (excelPackage.Workbook.Worksheets["DataByCategory"] != null)
+                {
+                    worksheet1 = excelPackage.Workbook.Worksheets["DataByCategory"];
+                    worksheet1.Cells.Clear();
+                }
+                else
+                {
+                    worksheet1 = excelPackage.Workbook.Worksheets.Add("DataByCategory");
+                }
+
+                if (excelPackage.Workbook.Worksheets["DataByMaterial"] != null)
+                {
+                    worksheet2 = excelPackage.Workbook.Worksheets["DataByMaterial"];
+                    worksheet2.Cells.Clear();
+                }
+                else
+                {
+                    worksheet2 = excelPackage.Workbook.Worksheets.Add("DataByMaterial");
+                }
+
+                if (excelPackage.Workbook.Worksheets["DataByTransparency"] != null)
+                {
+                    worksheet3 = excelPackage.Workbook.Worksheets["DataByTransparency"];
+                    worksheet3.Cells.Clear();
+                }
+                else
+                {
+                    worksheet3 = excelPackage.Workbook.Worksheets.Add("DataByTransparency");
+                }
+
+                List<ExcelWorksheet> ws = new List<ExcelWorksheet>();
+                ws.Add(worksheet1);
+                ws.Add(worksheet2);
+                ws.Add(worksheet3);
+                foreach(ExcelWorksheet worksheet in ws)
+                {
+                    worksheet.Cells[1, 1].Value ="Name";
+                    worksheet.Cells[1, 2].Value = "Area";
+                    worksheet.Cells[1, 3].Value = "Notes/TypeMark";
+                    if(exportRvtData)
+                    {
+                        worksheet.Cells[1, 4].Value = "RvtColor";
+                        worksheet.Cells[1, 5].Value = "RvtElementId";
+                        worksheet.Cells[1, 6].Value = "RvtDocument";
+                    }
+                }
+
+                
+                List<ICollection<SourceDataTypes>> listData = new List<ICollection<SourceDataTypes>>();
+                listData.Add(model.DataDetails);
+                listData.Add(model.DataByMaterial);
+                listData.Add(model.DataByTransparency);
+                for(int i=0; i<listData.Count;i++)
+                {
+                    int rowIndex = 2;
+                    var dataList = listData[i];
+                    var worksheet = ws[i];
+                    foreach(var data in dataList)
+                    {
+                        rowIndex++;
+                        int level = 0;
+                        worksheet.Row(rowIndex).OutlineLevel= level;
+                        worksheet.Cells[rowIndex, 1].Value = data.Name;
+                        worksheet.Cells[rowIndex, 2].Value = data.Area;
+                        worksheet.Cells[rowIndex, 3].Value = data.Notes;
+                        if (exportRvtData)
+                        {
+                            worksheet.Cells[rowIndex, 4].Value = data.Color.ToString();
+                            if (data.Rvt_ptr != null)
+                            {
+                                worksheet.Cells[rowIndex, 5].Value = data.Rvt_ptr.Id;
+                                worksheet.Cells[rowIndex, 6].Value = data.Rvt_ptr.Document.Title;
+                            }
+                        }
+                        WriteNodeData(data, exportRvtData,worksheet,level,ref rowIndex);
+                    }
+                }
+
+                excelPackage.Save();
+                excelPackage.Dispose();
+            }
+
+            MessageBox.Show("Excel file created!");
+        }
+        private static void WriteNodeData(SourceDataTypes dataNode, bool exportRvt, ExcelWorksheet worksheet, int level,ref int rowIndex)
+        {
+            if (dataNode.Children==null || dataNode.Children.Count==0)
+            {
+                return;
+            }
+            
+            foreach (var childNode in dataNode.Children)
+            {
+                rowIndex++;
+                worksheet.Row(rowIndex).OutlineLevel = level+1;
+                SetBackgroundColor(worksheet.Row(rowIndex), level + 1);
+                worksheet.Cells[rowIndex, 1].Value = childNode.Name;
+                worksheet.Cells[rowIndex, 2].Value = childNode.Area;
+                worksheet.Cells[rowIndex, 3].Value = childNode.Notes;
+                if (exportRvt)
+                {
+                    worksheet.Cells[rowIndex, 4].Value = childNode.Color.ToString();
+                    if (childNode.Rvt_ptr != null)
+                    {
+                        worksheet.Cells[rowIndex, 5].Value = childNode.Rvt_ptr.Id;
+                        worksheet.Cells[rowIndex, 6].Value = childNode.Rvt_ptr.Document.Title;
+                    }
+                }
+                WriteNodeData(childNode, exportRvt,worksheet, level+1,ref rowIndex);
+            }
+        }
+
+        private static void SetBackgroundColor(ExcelRow cell, int level)
+        {
+            switch (level)
+            {
+                case 1:
+                    cell.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                    cell.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightYellow);
+                    break;
+                case 2:
+                    cell.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                    cell.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGreen);
+                    break;
+                case 3:
+                    cell.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                    cell.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightSkyBlue);
+                    break;
+                case 4:
+                    cell.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                    cell.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Azure);
+                    break;
+                default:
+                    break;
+            }
+        }
         /// <summary>
         /// General txt export using a streamwriter
         /// </summary>
@@ -64,6 +221,7 @@ namespace AstRevitTool.Core.Export
             str += analysis.Report();
             writer.Write(str);
         }
+
 
         public static void csvExport(TextWriter writer, IAnalysis analysis)
         {
