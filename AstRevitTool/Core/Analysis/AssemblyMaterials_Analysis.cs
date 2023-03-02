@@ -76,7 +76,7 @@ namespace AstRevitTool.Core.Analysis
                 quantityperelement.Area = area;
                 quantityperelement.Volume = volume;
                 quantities.Add(mat, quantityperelement);
-                List<Element> init = new List<Element>();
+                HashSet<Element> init = new HashSet<Element>();
                 init.Add(e);
                 this.MyInfo.Add(new FilteredInfo(mat, area, init));
             }
@@ -113,7 +113,7 @@ namespace AstRevitTool.Core.Analysis
         }
         public override string Type()
         {
-            return "Compound Structures Material Analysis";
+            return "Assembly Decomposition";
         }
 
         public override Dictionary<string, double> ResultList()

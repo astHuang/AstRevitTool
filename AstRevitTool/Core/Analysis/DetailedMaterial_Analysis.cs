@@ -19,7 +19,7 @@ namespace AstRevitTool.Core.Analysis
             this.SortByCategory = false;
             this.IncludeGeneric = false;
             this.ActiveView = context.MainDoc.ActiveView;
-            this.UIApp = context.UIApp;
+            //this.UIApp = context.UIApp;
         }
         public bool SortByCategory { get; set; }
         public bool SortByFamily { get; set; }
@@ -28,7 +28,7 @@ namespace AstRevitTool.Core.Analysis
         public bool IncludeGeneric { get; set; }
 
         public Autodesk.Revit.DB.View ActiveView { get; set; }
-        public Autodesk.Revit.UI.UIApplication UIApp { get; set; }
+        //public Autodesk.Revit.UI.UIApplication UIApp { get; set; }
 
         private ICollection<Element> MyElements = new List<Element>();
 
@@ -78,7 +78,7 @@ namespace AstRevitTool.Core.Analysis
                     else if(materialname != "" && !Metrics.ContainsKey(materialname))
                     {
                         Metrics.Add(materialname,area);
-                        List<Element> init = new List<Element>();
+                        HashSet<Element> init = new HashSet<Element>();
                         init.Add(ele);
                         this.MyInfo.Add(new FilteredInfo(materialname, area,init));
                         //this.InfoList.Add(new FilteredInfo(materialname, area,solid.Volume,));
@@ -254,6 +254,8 @@ namespace AstRevitTool.Core.Analysis
             AnalyzeWindows();
             AnalyzeRoofs();
             AnalyzeFloors();
+            //AnalyzeRailings
+            //AnalyzeStairs
         }
 
         public override string Conclusion()
@@ -271,7 +273,7 @@ namespace AstRevitTool.Core.Analysis
 
         public override string Type()
         {
-            return "Material Categories Analysis";
+            return "Material Take-off";
         }
 
         public override Dictionary<string, double> ResultList()

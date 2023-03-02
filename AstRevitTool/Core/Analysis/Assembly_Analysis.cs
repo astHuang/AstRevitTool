@@ -171,7 +171,7 @@ namespace AstRevitTool.Core.Analysis
                     else
                     {
                         Quantities.Add(TName, new Tuple<string, double>(TMark,area));
-                        List<Element> init = new List<Element>();
+                        HashSet<Element> init = new HashSet<Element>();
                         init.Add(ele);
                         this.MyInfo.Add(new FilteredInfo(TName, area, init));
                     }
@@ -347,7 +347,7 @@ namespace AstRevitTool.Core.Analysis
 
         public virtual string Type()
         {
-            return "Assembly Type Analysis";
+            return "Exterior Types Take-off";
         }
 
         public virtual string Conclusion()

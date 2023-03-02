@@ -59,7 +59,7 @@ namespace AstRevitTool.Core.Analysis
                                 else
                                 {
                                     Metrics.Add(fullname, area);
-                                    List<Element> init = new List<Element>();
+                                    HashSet<Element> init = new HashSet<Element>();
                                     init.Add(wall);
                                     this.MyInfo.Add(new FilteredInfo(fullname, area, init));
                                 }
@@ -89,7 +89,7 @@ namespace AstRevitTool.Core.Analysis
                                 else
                                 {
                                     Metrics.Add(matName, area);
-                                    List<Element> init = new List<Element>();
+                                    HashSet<Element> init = new HashSet<Element>();
                                     init.Add(wall);
                                     this.MyInfo.Add(new FilteredInfo(matName, area, init));
                                 }
@@ -145,7 +145,7 @@ namespace AstRevitTool.Core.Analysis
                         else
                         {
                             Metrics.Add(fullname, area);
-                            List<Element> init = new List<Element>();
+                            HashSet<Element> init = new HashSet<Element>();
                             init.Add(cpanel);
                             this.MyInfo.Add(new FilteredInfo(fullname, area, init));
                         }

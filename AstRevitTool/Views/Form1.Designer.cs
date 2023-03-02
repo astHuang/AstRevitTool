@@ -127,9 +127,10 @@ namespace AstRevitTool.Views
             this.m_bnOK.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.m_bnOK.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.m_bnOK.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.m_bnOK.Location = new System.Drawing.Point(16, 573);
+            this.m_bnOK.Location = new System.Drawing.Point(12, 466);
+            this.m_bnOK.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.m_bnOK.Name = "m_bnOK";
-            this.m_bnOK.Size = new System.Drawing.Size(124, 27);
+            this.m_bnOK.Size = new System.Drawing.Size(93, 22);
             this.m_bnOK.TabIndex = 3;
             this.m_bnOK.Text = "OK";
             // 
@@ -137,9 +138,10 @@ namespace AstRevitTool.Views
             // 
             this.label1.AutoEllipsis = true;
             this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 13.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label1.Location = new System.Drawing.Point(12, 14);
+            this.label1.Location = new System.Drawing.Point(9, 11);
+            this.label1.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(288, 82);
+            this.label1.Size = new System.Drawing.Size(216, 67);
             this.label1.TabIndex = 4;
             this.label1.Text = "label1";
             // 
@@ -147,9 +149,10 @@ namespace AstRevitTool.Views
             // 
             this.label2.AutoEllipsis = true;
             this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label2.Location = new System.Drawing.Point(14, 105);
+            this.label2.Location = new System.Drawing.Point(10, 85);
+            this.label2.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(288, 57);
+            this.label2.Size = new System.Drawing.Size(216, 46);
             this.label2.TabIndex = 5;
             this.label2.Text = "label2";
             // 
@@ -164,10 +167,11 @@ namespace AstRevitTool.Views
             this.m_lvData.FullRowSelect = true;
             this.m_lvData.GridLines = true;
             this.m_lvData.HideSelection = false;
-            this.m_lvData.Location = new System.Drawing.Point(325, 14);
+            this.m_lvData.Location = new System.Drawing.Point(244, 11);
+            this.m_lvData.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.m_lvData.Name = "m_lvData";
             this.m_lvData.ShowItemToolTips = true;
-            this.m_lvData.Size = new System.Drawing.Size(450, 591);
+            this.m_lvData.Size = new System.Drawing.Size(449, 481);
             this.m_lvData.TabIndex = 6;
             this.m_lvData.UseCompatibleStateImageBehavior = false;
             this.m_lvData.View = System.Windows.Forms.View.Details;
@@ -186,9 +190,10 @@ namespace AstRevitTool.Views
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(14, 260);
+            this.label3.Location = new System.Drawing.Point(10, 211);
+            this.label3.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(126, 16);
+            this.label3.Size = new System.Drawing.Size(100, 13);
             this.label3.TabIndex = 7;
             this.label3.Text = "Analysis Information";
             // 
@@ -196,18 +201,20 @@ namespace AstRevitTool.Views
             // 
             this.label4.AutoEllipsis = true;
             this.label4.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label4.Location = new System.Drawing.Point(14, 449);
+            this.label4.Location = new System.Drawing.Point(10, 365);
+            this.label4.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(288, 55);
+            this.label4.Size = new System.Drawing.Size(216, 45);
             this.label4.TabIndex = 8;
             this.label4.Text = "     ";
             // 
             // button2
             // 
             this.button2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.button2.Location = new System.Drawing.Point(165, 573);
+            this.button2.Location = new System.Drawing.Point(124, 466);
+            this.button2.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(137, 27);
+            this.button2.Size = new System.Drawing.Size(103, 22);
             this.button2.TabIndex = 10;
             this.button2.Text = "Error Report";
             this.button2.UseVisualStyleBackColor = true;
@@ -216,9 +223,10 @@ namespace AstRevitTool.Views
             // button1
             // 
             this.button1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.button1.Location = new System.Drawing.Point(16, 527);
+            this.button1.Location = new System.Drawing.Point(12, 428);
+            this.button1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(124, 27);
+            this.button1.Size = new System.Drawing.Size(93, 22);
             this.button1.TabIndex = 11;
             this.button1.Text = "Save as csv...";
             this.button1.UseVisualStyleBackColor = true;
@@ -227,9 +235,10 @@ namespace AstRevitTool.Views
             // button3
             // 
             this.button3.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.button3.Location = new System.Drawing.Point(165, 527);
+            this.button3.Location = new System.Drawing.Point(124, 428);
+            this.button3.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.button3.Name = "button3";
-            this.button3.Size = new System.Drawing.Size(137, 27);
+            this.button3.Size = new System.Drawing.Size(103, 22);
             this.button3.TabIndex = 12;
             this.button3.Text = "Save as txt...";
             this.button3.UseVisualStyleBackColor = true;
@@ -237,19 +246,21 @@ namespace AstRevitTool.Views
             // 
             // button4
             // 
-            this.button4.Location = new System.Drawing.Point(14, 165);
+            this.button4.Location = new System.Drawing.Point(10, 134);
+            this.button4.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.button4.Name = "button4";
-            this.button4.Size = new System.Drawing.Size(180, 31);
+            this.button4.Size = new System.Drawing.Size(135, 25);
             this.button4.TabIndex = 13;
-            this.button4.Text = "Color Elements in Selection";
+            this.button4.Text = "Color Elements";
             this.button4.UseVisualStyleBackColor = true;
             this.button4.Click += new System.EventHandler(this.button4_Click);
             // 
             // button5
             // 
-            this.button5.Location = new System.Drawing.Point(215, 165);
+            this.button5.Location = new System.Drawing.Point(161, 134);
+            this.button5.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.button5.Name = "button5";
-            this.button5.Size = new System.Drawing.Size(85, 77);
+            this.button5.Size = new System.Drawing.Size(64, 63);
             this.button5.TabIndex = 14;
             this.button5.Text = "Clear";
             this.button5.UseVisualStyleBackColor = true;
@@ -257,21 +268,22 @@ namespace AstRevitTool.Views
             // 
             // button6
             // 
-            this.button6.Location = new System.Drawing.Point(14, 211);
+            this.button6.Location = new System.Drawing.Point(10, 171);
+            this.button6.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.button6.Name = "button6";
-            this.button6.Size = new System.Drawing.Size(180, 31);
+            this.button6.Size = new System.Drawing.Size(135, 25);
             this.button6.TabIndex = 15;
-            this.button6.Text = "Select Elements in Revit";
+            this.button6.Text = "Select Elements";
             this.button6.UseVisualStyleBackColor = true;
             this.button6.Click += new System.EventHandler(this.button6_Click);
             // 
             // Form1
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoValidate = System.Windows.Forms.AutoValidate.EnablePreventFocusChange;
             this.BackColor = System.Drawing.SystemColors.HighlightText;
-            this.ClientSize = new System.Drawing.Size(800, 617);
+            this.ClientSize = new System.Drawing.Size(711, 501);
             this.Controls.Add(this.button6);
             this.Controls.Add(this.button5);
             this.Controls.Add(this.button4);
@@ -284,6 +296,7 @@ namespace AstRevitTool.Views
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.m_bnOK);
+            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.Name = "Form1";
             this.Text = "AST Take-off Table";
             this.ResumeLayout(false);

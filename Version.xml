@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <item>
-	<version>2.0.0.0</version>
-	<url>https://github.com/astHuang/AstRevitTool/releases/download/1.0.2/AstRevitTool-1.0.2.msi</url>
+	<version>3.1.0.0</version>
+	<url>https://github.com/astHuang/AstRevitTool/releases</url>
 	<changelog>https://github.com/astHuang/AstRevitTool/blob/master/Changelog.md</changelog>
 	<mandatory mode="2">true</mandatory>
 </item>

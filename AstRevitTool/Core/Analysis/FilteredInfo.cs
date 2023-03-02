@@ -14,30 +14,29 @@ namespace AstRevitTool.Core.Analysis
 
         public double Volume { get; set; }
 
-        public string Name { get; set; }
+        public string UniqueName { get; set; }
 
-        public List<DirectShape> Shapes { get; set; }
         public static FilteredInfo matchInfoFromList(List<FilteredInfo> listinfo, string key)
         {
             foreach(FilteredInfo item in listinfo)
             {
-                if(item.Name == key) return item;
+                if(item.UniqueName == key) return item;
             }
             return null;
         }
-        public List<Element> FilteredElements { get; set; }
+        public HashSet<Element> FilteredElements { get; set; }
 
-        public FilteredInfo(string name,double area,double volume, List<Element> ele)
+        public FilteredInfo(string name,double area,double volume, HashSet<Element> ele)
         {
-            Name = name;
+            UniqueName = name;
             Area = area;
             Volume = volume;
             FilteredElements = ele;
         }
 
-        public FilteredInfo(string name,double area, List<Element> ele)
-        {   
-            Name = name;
+        public FilteredInfo(string name,double area, HashSet<Element> ele)
+        {
+            UniqueName = name;
             Area = area;
             Volume = 0.0;
             FilteredElements = ele;
@@ -45,10 +44,10 @@ namespace AstRevitTool.Core.Analysis
 
         public FilteredInfo(string name,double area)
         {
-            Name=name;
+            UniqueName = name;
             Area = area;
             Volume=0.0;
-            FilteredElements = new List<Element>();
+            FilteredElements = new HashSet<Element>();
         }
 
     }

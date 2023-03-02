@@ -149,9 +149,10 @@ namespace AstRevitTool.Views
             List<List<Element>> tree = new List<List<Element>>();
             foreach (ListViewItem item in selecteditems)
             {
-                var elelist = item.Tag as List<Element>;
-                allselected.AddRange(elelist);
-                tree.Add(elelist);
+                var elelist = item.Tag as HashSet<Element>;
+                var ele = elelist.ToList();
+                allselected.AddRange(ele);
+                tree.Add(ele);
             }
 
             Dictionary<string,int> map = elementMap(allselected);
@@ -257,10 +258,12 @@ namespace AstRevitTool.Views
             
         }
 
+        
         private void button5_Click(object sender, EventArgs e)
         {
             OverrideGraphicSettings ogs = new OverrideGraphicSettings();
-            using(Transaction tr = new Transaction(this.maindoc))
+            
+            using (Transaction tr = new Transaction(this.maindoc))
             {
                 tr.Start("resume color");
                 foreach(Element el in this.my_analysis.AllAnalyzedElement())
@@ -296,7 +299,8 @@ namespace AstRevitTool.Views
             List<Element> allselected = new List<Element>();
             foreach (ListViewItem item in selecteditems)
             {
-                var elelist = item.Tag as List<Element>;
+                var ele = item.Tag as HashSet<Element>;
+                var elelist = ele.ToList();
                 allselected.AddRange(elelist);              
             }
 
