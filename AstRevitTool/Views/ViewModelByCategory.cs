@@ -138,6 +138,7 @@ namespace AstRevitTool.Views
             SpandrelMaterialsKeyword.Add("Backpanel");
             this._dataDetails = this.CreateData(analysis);
             this._dataByMaterial = this.CreateDataByMaterial(analysis);
+            this._dataByMaterial = new ObservableCollection<SourceDataTypes>(this._dataByMaterial.OrderByDescending(x => x.Area).ThenBy(x =>x.Name));
             this._dataByTransparency = this.ConvertData(this._dataDetails);
             this._hiddenDetails = new ObservableCollection<SourceDataTypes>();
             this._hiddenMaterial = new ObservableCollection<SourceDataTypes>();
@@ -301,6 +302,7 @@ namespace AstRevitTool.Views
             opaque.updateArea();
             opaque.updateElement();
             opaque.updateBIC();
+
             glazing.updateArea();
             glazing.updateElement();
             glazing.updateBIC();
@@ -517,12 +519,15 @@ namespace AstRevitTool.Views
                 if(Exist)
                 {
                     currentData = kvp.Value;
+                    //this.DictFilters[kvp.Key] = kvp.Value;
                 }
                 else
                 {
                     this.DictFilters.Add(kvp.Key, kvp.Value);
                 }
             }
+
+           
         }
 
         public void RemoveFilter(List<string> filterNamesToRemove)
@@ -545,17 +550,63 @@ namespace AstRevitTool.Views
             }
 
         }
+
+        public void RemoveFilter(Dictionary<string,string> mapOfRemoving)
+        {
+            Dictionary<String, FilterData> r_dictFilters = new Dictionary<string, FilterData>();
+            foreach (KeyValuePair<string,string> kvp in mapOfRemoving)
+            {
+                string dataName = kvp.Key;
+                string dictKey = kvp.Value;
+                FilterData currentData;
+                bool Exist = this.DictFilters.TryGetValue(dictKey, out currentData);
+                if (Exist)
+                {
+                    currentData.m_originalDataList.RemoveAll(data => data.RuleName == dataName);
+                    //this.DictFilters.Remove(filterName);
+                    if(r_dictFilters.Keys.Contains(dictKey))
+                    {
+                        r_dictFilters[dictKey] = currentData;
+                    }
+                    else
+                    {
+                        r_dictFilters.Add(dictKey, currentData);
+                    }
+                    //r_dictFilters.Add(dictKey, currentData);
+                }
+            }
+            /*
+            foreach(var dictkvp in DictFilters)
+            {
+                FilterData data = dictkvp.Value;
+                if(data.m_originalDataList.Count == 0)
+                {
+                    DictFilters.Remove(dictkvp.Key);
+                }
+            }*/
+            if (r_dictFilters.Count > 0)
+            {
+                
+                Application.ASTRequestHandler.Arg1 = this.DictFilters;
+                Application.ASTRequestHandler.Request = RequestId.Filter;
+                Application.ASTEvent.Raise();
+            }
+
+        }
         public void ViewFilter()
         {
             Application.ASTRequestHandler.Arg1 = this.DictFilters;
             Application.ASTRequestHandler.Request = RequestId.Filter;
             Application.ASTEvent.Raise();
 
+            
+
         }
 
         private void ClearItemBackgroundColor(SourceDataTypes parent)
         {
             parent._color = Colors.Transparent;
+            parent.ColorGroup = parent.RuleName;
             parent.Background = new SolidColorBrush(parent._color);
             if (parent.Children != null && parent.Children.Count != 0)
             {

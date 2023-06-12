@@ -21,25 +21,33 @@ namespace AstRevitTool.Views
     {
         public int lod = 8;
         public bool useTexture;
-        public bool useNodes;
+        public bool blackAndWhite;
+
+        public bool useCentimeter;
         public bool skipInterior;
         public bool optimizeSolid = false;
+
+        public bool exportBinary;
         public Window1()
         {
             InitializeComponent();
             this.lod = 4;
             this.useTexture = true;
-            this.useNodes = (bool)this.UseInstance.IsChecked;
+            this.useCentimeter = (bool)this.UseCentimeter.IsChecked;
+            this.blackAndWhite = (bool)this.UseBlackWhite.IsChecked;
+
             this.skipInterior = (bool)this.SkipInterior.IsChecked;
-            
+            this.exportBinary = (bool)this.BinaryExport.IsChecked;
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             this.lod = (int)lodValueSlider.Value;
             this.useTexture = (bool)this.UseTexture.IsChecked;
-            this.useNodes = (bool)this.UseInstance.IsChecked;
+            this.useCentimeter = (bool)this.UseCentimeter.IsChecked;
+            this.blackAndWhite = (bool)this.UseBlackWhite.IsChecked;
             this.skipInterior= (bool)this.SkipInterior.IsChecked;
+            this.exportBinary = (bool)this.BinaryExport.IsChecked;
             this.Close();
         }
 
@@ -49,9 +57,13 @@ namespace AstRevitTool.Views
             if(this.lodText != null) { this.lodText.Text = "Current LoD: " + lodValueSlider.Value.ToString(); }          
         }
 
-        private void UseInstance_Checked(object sender, RoutedEventArgs e)
+        private void UseTexture_Checked(object sender, RoutedEventArgs e)
         {
-            this.useNodes = true;
+            /*
+            if(this.UseBlackWhite != null && this.UseBlackWhite.IsChecked!=null)
+            {
+                this.UseBlackWhite.IsChecked = false;
+            }*/
         }
     }
 }

@@ -278,7 +278,7 @@ namespace AstRevitTool.Core.Analysis
                 Options option = new Options();
                 GeometryElement geo = el.get_Geometry(option);
                 area = geoarea(geo);
-
+                //TODO: display in the UI when it happens
             }
             return area;
         }

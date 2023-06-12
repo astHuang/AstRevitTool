@@ -9,33 +9,57 @@ using AstRevitTool.Core;
 using System.Collections.ObjectModel;
 using System.Windows.Media;
 using System.ComponentModel;
+using Microsoft.Office.Interop.Excel;
 
 namespace AstRevitTool.Views
 {
+    public enum SourceDataCategory
+    {
+        ElementType,
+        ElementCategory,
+        ElementSubMaterial,
+        ElementMaterial,
+        ElementSubType
+    }
     public class SourceDataTypes:INotifyPropertyChanged
     {
         private string _name;
+        private SourceDataCategory _datahierarchy;
         public double _area;
         public System.Windows.Media.Color _color;
         private bool _transparent;
         public string _notes;
         private string _familyName;
         private ObservableCollection<SourceDataTypes> _children;
+        private string _hierarchy;
         private SourceDataTypes _parent;
         private HashSet<Element> _elements;
         private string _ruleName;
+        private string _colorgroup;
         public bool isSelected;
         public string MaterialCategory = "";
 
+        public string ColorGroup { 
+            get { return _colorgroup; } 
+            set { _colorgroup = value;OnPropertyChanged("ColorGroup");
+                OnPropertyChanged("DisplayColorGroupName"); } 
+        }
+
+        public string DisplayColorGroupName
+        {
+            get { return (_colorgroup == _ruleName) || (_ruleName == null)? "" : _colorgroup;}
+        }
+
+        public SourceDataCategory Hierarchy { get { return _datahierarchy; }  }
         public Category b_category;
         public Element Rvt_ptr;
-        public FamilySymbol Family;
+        public FamilySymbol Family { get; set; }
 
         public List<string> TypeNameCollection = new List<string>();
         public string Name { get { return _name; } set { _name = value; OnPropertyChanged("Name"); } }
 
         public HashSet<Element> Elements { get { return _elements; } }
-        public double Area { get { return _area; } }
+        public double Area { get { return _area; } set { _area = value;OnPropertyChanged("Area"); } }
 
         public string RuleName { get { return _ruleName; } set { _ruleName = value;OnPropertyChanged("RuleName"); } }
         private Brush _background;
@@ -54,11 +78,36 @@ namespace AstRevitTool.Views
         public HashSet<BuiltInCategory> BICs = new HashSet<BuiltInCategory>();
 
         public ObservableCollection<SourceDataTypes> Children { get { return _children; } }
+
+        public void ResetColorGroup()
+        {
+            this._colorgroup = this._ruleName;
+        }
+
+        
+
+        public void SortChilden()
+        {
+            if(_children != null && _children.Count > 0)
+            {
+                _children = new ObservableCollection<SourceDataTypes>(
+        Children.OrderBy(child => child.Notes)
+                .ThenByDescending(child => child.Area)
+                .ThenBy(child => child.Name)
+    );
+
+                // Notify any subscribers that the Children property has been updated
+                OnPropertyChanged(nameof(Children));
+            }
+        }
         public SourceDataTypes Parent { get { return _parent; } }
 
+        //create data type of fenestration or 
         public SourceDataTypes(string name, bool opaque)
         {
             _name = name;
+            _datahierarchy = SourceDataCategory.ElementCategory;
+            _colorgroup = name;
             _transparent = opaque;
             _children = new ObservableCollection<SourceDataTypes>();
             _parent = null;
@@ -75,7 +124,9 @@ namespace AstRevitTool.Views
         {
             isSelected = false;
             _name = dataType.CategoryName;
+            _colorgroup = dataType.CategoryName;
             b_category = dataType.Category;
+            _datahierarchy = SourceDataCategory.ElementCategory;
             BICs.Clear();
             BICs.Add(dataType.BIC);         
             _area = Math.Round(dataType.GetArea(),1);
@@ -93,6 +144,7 @@ namespace AstRevitTool.Views
                 _children.Add(new SourceDataTypes(data,this));
                 _elements.UnionWith(data.FilteredElements);
             }
+            SortChilden();
             
         }
 
@@ -135,7 +187,9 @@ namespace AstRevitTool.Views
             _name=data.Name;
             _parent=data.Parent;
             _transparent = data.Transparent;
+            _colorgroup = data._colorgroup;
             _area=data.Area;
+            _datahierarchy = data._datahierarchy;
             _color = data.Color;
             _background = new SolidColorBrush(_color);
             _notes =data.Notes;
@@ -151,6 +205,7 @@ namespace AstRevitTool.Views
                 {
                     _children.Add(child);
                 }
+                SortChilden();
             }
         }
 
@@ -160,8 +215,10 @@ namespace AstRevitTool.Views
             _parent = parent;
             isSelected = false;
             _name = data.TypeName;
+            _datahierarchy = SourceDataCategory.ElementType;
             _area = Math.Round(data.Area, 1);
             _color = Colors.Transparent;
+            _colorgroup = _name;
             _background = new SolidColorBrush(_color);
             _transparent =false;
             _children = new ObservableCollection<SourceDataTypes>();
@@ -182,6 +239,7 @@ namespace AstRevitTool.Views
             {
                 _children.Add(new SourceDataTypes(item, data,this));
             }
+            SortChilden();
         }
 
         public SourceDataTypes(KeyValuePair<string, FilteredMaterial> item,FilteredData parent,SourceDataTypes parents)
@@ -193,6 +251,7 @@ namespace AstRevitTool.Views
             _background = new SolidColorBrush(_color);
             _parent = parents;
             _children = null;
+            _datahierarchy = SourceDataCategory.ElementSubMaterial;
             _transparent = item.Value.isTransparent;
             _ruleName = null;
             if (item.Value.RevitMaterial != null)
@@ -213,10 +272,12 @@ namespace AstRevitTool.Views
             isSelected = false;
             MaterialCategory = material.subCategory;
             _name = material.RevitMaterial.Name;
+            _datahierarchy = SourceDataCategory.ElementMaterial;
             Rvt_ptr= material.RevitMaterial;
             _ruleName = null;
             _area = Math.Round(material.Area,1);
             _color = Colors.Transparent;
+            _colorgroup = _name;
             _background = new SolidColorBrush(_color);
             _transparent = material.isTransparent;
             _parent = null;
@@ -237,17 +298,20 @@ namespace AstRevitTool.Views
                 
                 _children.Add(new SourceDataTypes(name, rulename,area, elements,cats,this));
             }
+            SortChilden();
         }
 
         public SourceDataTypes(string name, string rule, double area,HashSet<Element> elements,HashSet<BuiltInCategory> bics,SourceDataTypes parent)
         {
             _parent = parent;
             BICs = bics;
+            _datahierarchy = SourceDataCategory.ElementSubType;
             _name = name;
             _ruleName = rule;
             _area = Math.Round(area,1);
             _elements= elements;
             _color = Colors.Transparent;
+            _colorgroup = rule;
             _background = new SolidColorBrush(_color);
             
         }

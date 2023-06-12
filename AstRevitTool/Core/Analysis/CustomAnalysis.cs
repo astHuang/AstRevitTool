@@ -65,6 +65,7 @@ namespace AstRevitTool.Core.Analysis
             //BuiltInCategory.OST_Railings,
             BuiltInCategory.OST_CurtainWallMullions,
             BuiltInCategory.OST_Windows,
+            //BuiltInCategory.OST_Curtain_Systems,
             BuiltInCategory.OST_Doors
         };
 
@@ -142,6 +143,7 @@ namespace AstRevitTool.Core.Analysis
                 }
                 foreach(var ele in walls)
                 {
+                    //if(ele.Category==curtain wall){exclude ele}
                     Wall wall = ele as Wall;
                     if (wall !=null && wall.IsStackedWall && StackedWallEligible(wall,walls))
                     {
@@ -229,7 +231,7 @@ namespace AstRevitTool.Core.Analysis
                             FamilyInstance fInstance = e as FamilyInstance;
                             area += AnalysisUtils.GetInstanceSurfaceAreaMetric(fInstance);
                         }
-                        else if(category == BuiltInCategory.OST_Railings)
+                        else if(category == BuiltInCategory.OST_Railings || category == BuiltInCategory.OST_CurtainWallMullions)
                         {
 
                         }
@@ -242,6 +244,7 @@ namespace AstRevitTool.Core.Analysis
                 }
                 if(area < 0.1) { continue; }
 
+                //preparing metadata for the user interface
                 FilteredData data = new FilteredData(typeid.ToString(), area, elements,this.AnalyzedMaterial,category);
                 this.AnalyzedMaterial = data.materialPool;
 

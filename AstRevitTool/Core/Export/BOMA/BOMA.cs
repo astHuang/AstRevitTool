@@ -84,7 +84,7 @@ namespace AstRevitTool.Core.Export
 
         public BOMA(SvgExport.floorJson floorData, Level l)
         {
-            this.Boundary_area = floorData.boundaryArea;
+            this.Boundary_area = floorData.Value[0].boundaryArea;
             this.level = l;
         }
 

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Autodesk.Revit.DB;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,7 +10,12 @@ namespace AstRevitTool
     internal static class Constants
     {
         internal static string urlMain => "https://www.arrowstreet.com/";
+   
         internal static string emailSupport => "marketing@arrowstreet.com";
+
+        internal static string LeasingParameter = "Leasing Classification";
+
+        internal static string ProgrammingParameter = "Program Group";
 
         internal const string BOMA = "BOMA Space Classification";
 

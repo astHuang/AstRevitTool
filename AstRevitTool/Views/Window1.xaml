@@ -15,13 +15,60 @@
             <ColumnDefinition Width="4*"/>
         </Grid.ColumnDefinitions>
         <Slider x:Name="lodValueSlider" HorizontalAlignment="Left" IsSnapToTickEnabled="True" TickFrequency="1" Margin="154,53,0,0" VerticalAlignment="Top" Width="492" Height="82" TickPlacement="BottomRight" Value="4" Maximum="15" SmallChange="1" LargeChange="3" Cursor="Arrow" Grid.ColumnSpan="4" ValueChanged="lodValueSlider_ValueChanged"/>
-        <Button x:Name="OK" Content="OK" Margin="94,291,0,0" Click="Button_Click" Grid.Column="2" VerticalAlignment="Top" HorizontalAlignment="Left" Width="107" Height="29"/>
+        <Button x:Name="OK" Content="OK" Margin="94,347,0,0" Click="Button_Click" Grid.Column="2" VerticalAlignment="Top" HorizontalAlignment="Left" Width="107" Height="29"/>
         <TextBlock HorizontalAlignment="Left" Margin="135,85,0,0" TextWrapping="Wrap" Text="Low Detail" VerticalAlignment="Top" Width="120"  Grid.ColumnSpan="3"/>
         <TextBlock HorizontalAlignment="Left" Margin="0,85,0,0" TextWrapping="Wrap" Text="High Detail" VerticalAlignment="Top" Width="120" Grid.Column="3" />
         <TextBlock x:Name="lodText" TextWrapping="Wrap" Text="Current LoD: 4" Margin="113,85,77,285" Grid.Column="2"/>
-        <CheckBox x:Name="UseTexture" Content="Use Textures" HorizontalAlignment="Left" VerticalAlignment="Center" IsChecked="True" Height="38" Width="102" Grid.Column="1" Grid.ColumnSpan="2"/>
-        <CheckBox x:Name="UseInstance" Content="Instance Nodes" HorizontalAlignment="Left" VerticalAlignment="Center" IsChecked="False" Height="38" Width="107" Grid.Column="2" Margin="94,0,0,0"/>
-        <CheckBox x:Name="SkipInterior" Content="Skip Interior" HorizontalAlignment="Left" VerticalAlignment="Center" IsChecked="False" Height="38" Width="107" Grid.Column="2" Margin="259,0,0,0"/>
+
+        <CheckBox x:Name="BinaryExport" Content="Binary Export" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalAlignment="Top" IsChecked="True" Height="18" Width="107" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,155,0,0"/>
+        <TextBlock x:Name="ExportFormatText" FontStyle="Italic" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,181,0,0" Grid.Column="1" Grid.ColumnSpan="2" Width="107">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Text" Value="Export .glb file"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ElementName=BinaryExport, Path=IsChecked}" Value="False">
+                            <Setter Property="Text" Value="Export .gltf file"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+
+        <CheckBox x:Name="UseTexture" Content="Use Textures" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Left" IsChecked="True" Height="38" Width="107" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,239,0,0" Checked="UseTexture_Checked"/>
+        <CheckBox x:Name="UseCentimeter" Content="Use Centimeter" HorizontalAlignment="Left" VerticalAlignment="Top" IsChecked="False" Height="38" Width="107" Grid.Column="2" Margin="94,239,0,0"/>
+        <CheckBox x:Name="SkipInterior" Content="Skip Interior" HorizontalAlignment="Left" VerticalAlignment="Top" IsChecked="False" Height="38" Width="107" Grid.Column="2" Margin="259,239,0,0"/>
+
+        <CheckBox x:Name="UseBlackWhite" Content="Use Black and White" HorizontalAlignment="Left" VerticalAlignment="Top" IsChecked="False" Height="38" Width="140" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,261,0,0">
+            
+        </CheckBox>
+
+        <TextBlock x:Name="UnitNote" FontStyle="Italic" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="94,261,0,0" Grid.Column="2"  Width="140">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Text" Value=""/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ElementName=UseCentimeter, Path=IsChecked}" Value="True">
+                            <Setter Property="Text" Value="The model will be scaled &#xD;&#xA;by 1/100 !"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+
+        <TextBlock x:Name="SkipNote" FontStyle="Italic" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="259,261,0,0" Grid.Column="2" Grid.ColumnSpan="2" Width="160">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Text" Value=""/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ElementName=SkipInterior, Path=IsChecked}" Value="True">
+                            <Setter Property="Text" Value="Ignoring Interior Workset!"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+
+
 
     </Grid>
 </Window>

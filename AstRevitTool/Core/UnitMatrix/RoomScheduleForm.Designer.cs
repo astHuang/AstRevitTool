@@ -58,7 +58,6 @@ namespace AstRevitTool.Core.UnitMatrix
             this.roomsGroupBox = new System.Windows.Forms.GroupBox();
             this.button2 = new System.Windows.Forms.Button();
             this.button1 = new System.Windows.Forms.Button();
-            this.clearIDButton = new System.Windows.Forms.Button();
             this.showAllRoomsCheckBox = new System.Windows.Forms.CheckBox();
             this.closeButton = new System.Windows.Forms.Button();
             this.button3 = new System.Windows.Forms.Button();
@@ -98,7 +97,7 @@ namespace AstRevitTool.Core.UnitMatrix
             this.levelComboBox.Location = new System.Drawing.Point(104, 20);
             this.levelComboBox.Margin = new System.Windows.Forms.Padding(4);
             this.levelComboBox.Name = "levelComboBox";
-            this.levelComboBox.Size = new System.Drawing.Size(248, 24);
+            this.levelComboBox.Size = new System.Drawing.Size(158, 24);
             this.levelComboBox.Sorted = true;
             this.levelComboBox.TabIndex = 0;
             this.levelComboBox.SelectedIndexChanged += new System.EventHandler(this.levelComboBox_SelectedIndexChanged);
@@ -107,7 +106,6 @@ namespace AstRevitTool.Core.UnitMatrix
             // 
             this.roomsGroupBox.Controls.Add(this.button2);
             this.roomsGroupBox.Controls.Add(this.button1);
-            this.roomsGroupBox.Controls.Add(this.clearIDButton);
             this.roomsGroupBox.Controls.Add(this.showAllRoomsCheckBox);
             this.roomsGroupBox.Controls.Add(this.revitRoomDataGridView);
             this.roomsGroupBox.Controls.Add(this.levelComboBox);
@@ -123,7 +121,7 @@ namespace AstRevitTool.Core.UnitMatrix
             // 
             // button2
             // 
-            this.button2.Location = new System.Drawing.Point(557, 16);
+            this.button2.Location = new System.Drawing.Point(773, 14);
             this.button2.Margin = new System.Windows.Forms.Padding(4);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(132, 28);
@@ -134,7 +132,7 @@ namespace AstRevitTool.Core.UnitMatrix
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(716, 16);
+            this.button1.Location = new System.Drawing.Point(932, 14);
             this.button1.Margin = new System.Windows.Forms.Padding(4);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(132, 28);
@@ -143,21 +141,10 @@ namespace AstRevitTool.Core.UnitMatrix
             this.button1.UseVisualStyleBackColor = true;
             this.button1.Click += new System.EventHandler(this.button1_Click_1);
             // 
-            // clearIDButton
-            // 
-            this.clearIDButton.Location = new System.Drawing.Point(875, 17);
-            this.clearIDButton.Margin = new System.Windows.Forms.Padding(4);
-            this.clearIDButton.Name = "clearIDButton";
-            this.clearIDButton.Size = new System.Drawing.Size(192, 28);
-            this.clearIDButton.TabIndex = 3;
-            this.clearIDButton.Text = "Clear &External Room ID";
-            this.clearIDButton.UseVisualStyleBackColor = true;
-            this.clearIDButton.Click += new System.EventHandler(this.clearIDButton_Click);
-            // 
             // showAllRoomsCheckBox
             // 
             this.showAllRoomsCheckBox.AutoSize = true;
-            this.showAllRoomsCheckBox.Location = new System.Drawing.Point(369, 22);
+            this.showAllRoomsCheckBox.Location = new System.Drawing.Point(279, 24);
             this.showAllRoomsCheckBox.Margin = new System.Windows.Forms.Padding(4);
             this.showAllRoomsCheckBox.Name = "showAllRoomsCheckBox";
             this.showAllRoomsCheckBox.Size = new System.Drawing.Size(127, 20);
@@ -221,7 +208,6 @@ namespace AstRevitTool.Core.UnitMatrix
         private System.Windows.Forms.GroupBox roomsGroupBox;
         private System.Windows.Forms.Button closeButton;
         private System.Windows.Forms.CheckBox showAllRoomsCheckBox;
-        private System.Windows.Forms.Button clearIDButton;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.Button button2;
         private System.Windows.Forms.Button button3;

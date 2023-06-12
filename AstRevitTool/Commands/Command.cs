@@ -20,16 +20,48 @@ using AstRevitTool.Masterclass.Dockable;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Net;
-using AstRevitTool.Energy;
 using Octokit;
 using System.Collections.ObjectModel;
-
+using Nice3point.Revit.Extensions;
+using AstRevitTool.Core.AreaPlan;
+using static AstRevitTool.Core.Export.SvgExport;
 
 namespace AstRevitTool.Commands
 {
+    [Transaction(TransactionMode.Manual), Regeneration(RegenerationOption.Manual)]
+    public class CmdAreaPlan : IExternalCommand
+    {
+        public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
+        {
+            try
+            {
+                Document current = commandData.Application.ActiveUIDocument.Document;
 
+                if (current.ActiveView.ViewType != ViewType.AreaPlan) throw new ApplicationException("Please run this command in an AreaPlan view!");
 
+                AstRevitTool.Core.AreaPlan.UI.MainForm form = new AstRevitTool.Core.AreaPlan.UI.MainForm(current);
+                if (form.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    return Result.Succeeded;
+                }
+                return Result.Cancelled;
+            }
+            catch (ApplicationException aex)
+            {
+                TaskDialog.Show("Error", aex.Message);
+            }
+            catch (Exception ex)
+            {
+                TaskDialog td = new TaskDialog("Unexpected Issue");
+                td.MainContent = ex.GetType().Name + ":  " + ex.Message;
+                td.ExpandedContent = "Developer Info: " + Environment.NewLine + ex.StackTrace;
+                td.Show();
 
+            }
+            return Result.Failed;
+
+        }
+    }
 
     [Transaction(TransactionMode.Manual)]
     public class CmdWWRCalc : IExternalCommand
@@ -71,146 +103,6 @@ namespace AstRevitTool.Commands
     }
 
 
-
-
-    [Transaction(TransactionMode.Manual)]
-    public class CmdWallMat : IExternalCommand
-    {
-        public Result Execute(
-          ExternalCommandData commandData,
-          ref string message,
-          ElementSet elements)
-        {
-            UIApplication uiapp = commandData.Application;
-            UIDocument uidoc = uiapp.ActiveUIDocument;
-
-            Autodesk.Revit.ApplicationServices.Application app = uiapp.Application;
-            Document doc = uidoc.Document;
-            Result rc;
-            try
-            {
-                ElementsVisibleInViewExportContext context = new ElementsVisibleInViewExportContext(doc);
-                if (doc.ActiveView as View3D != null)
-                    Core.Export.ASTExportUtils.ExportView3D(doc, doc.ActiveView, uiapp, out context);
-                else
-                    MessageBox.Show("You must be in 3D view to export.");
-
-                Material_Analysis mat = new Material_Analysis(context, app);
-                mat.Analyze();
-                //string report = "";
-                //ASTExportUtils.txtExport(doc, mat, out report);
-
-                //MessageBox.Show(report);
-                Views.Form1 form = new Views.Form1(mat, doc);
-                form.Show();
-                rc = Result.Succeeded;
-            }
-            catch (Exception ex)
-            {
-                TaskDialog.Show("Calculation Failed!" + "\r\n" + ex.Message, ex.Message + "\r\n" + ex.StackTrace);
-                rc = Result.Failed;
-            }
-
-            return rc;
-        }
-
-    }
-
-
-
-
-    [Transaction(TransactionMode.Manual)]
-    public class CmdWallType : IExternalCommand
-    {
-        public Result Execute(
-          ExternalCommandData commandData,
-          ref string message,
-          ElementSet elements)
-        {
-            UIApplication uiapp = commandData.Application;
-            UIDocument uidoc = uiapp.ActiveUIDocument;
-
-            Autodesk.Revit.ApplicationServices.Application app = uiapp.Application;
-            Document doc = uidoc.Document;
-            Result rc;
-            try
-            {
-                ElementsVisibleInViewExportContext context = new ElementsVisibleInViewExportContext(doc);
-                if (doc.ActiveView as View3D != null)
-                    Core.Export.ASTExportUtils.ExportView3D(doc, doc.ActiveView, uiapp, out context);
-                else
-                    MessageBox.Show("You must be in 3D view to export.");
-
-                Material_Analysis mat = new Material_Analysis(context, app);
-                mat.byType = true;
-                mat.Analyze();
-                //string report = "";
-                //ASTExportUtils.txtExport(doc, mat, out report);
-
-                //MessageBox.Show(report);
-                Views.Form1 form = new Views.Form1(mat, doc);
-                form.Show();
-                rc = Result.Succeeded;
-            }
-            catch (Exception ex)
-            {
-                TaskDialog.Show("Calculation Failed!" + "\r\n" + ex.Message, ex.Message + "\r\n" + ex.StackTrace);
-                rc = Result.Failed;
-            }
-
-            return rc;
-        }
-
-    }
-
-
-
-
-    [Transaction(TransactionMode.Manual)]
-    public class CmdWallFamily : IExternalCommand
-    {
-        public Result Execute(
-          ExternalCommandData commandData,
-          ref string message,
-          ElementSet elements)
-        {
-            UIApplication uiapp = commandData.Application;
-            UIDocument uidoc = uiapp.ActiveUIDocument;
-
-            Autodesk.Revit.ApplicationServices.Application app = uiapp.Application;
-            Document doc = uidoc.Document;
-            Result rc;
-            try
-            {
-                ElementsVisibleInViewExportContext context = new ElementsVisibleInViewExportContext(doc);
-                if (doc.ActiveView as View3D != null)
-                    Core.Export.ASTExportUtils.ExportView3D(doc, doc.ActiveView, uiapp, out context);
-                else
-                    MessageBox.Show("You must be in 3D view to export.");
-
-                Material_Analysis mat = new Material_Analysis(context, app);
-                mat.byFamily = true;
-                mat.Analyze();
-                //string report = "";
-                //ASTExportUtils.txtExport(doc, mat, out report);
-
-                //MessageBox.Show(report);
-                Views.Form1 form = new Views.Form1(mat, doc);
-                form.Show();
-
-                rc = Result.Succeeded;
-            }
-            catch (Exception ex)
-            {
-                TaskDialog.Show("Calculation Failed!" + "\r\n" + ex.Message, ex.Message + "\r\n" + ex.StackTrace);
-                rc = Result.Failed;
-            }
-
-            return rc;
-        }
-
-    }
-
     [Transaction(TransactionMode.Manual)]
     public class CmdCustomAnalysis : IExternalCommand
     {
@@ -232,7 +124,7 @@ namespace AstRevitTool.Commands
             else
                 MessageBox.Show("You must be in 3D view to export.");
 
-            Analysis_Main main_window = new Analysis_Main(context,doc,app);
+            Analysis_Main main_window = new Analysis_Main(context, doc, app);
             main_window.Show();
             rc = Result.Succeeded;
             return rc;
@@ -284,8 +176,6 @@ namespace AstRevitTool.Commands
     }
 
 
-
-
     [Transaction(TransactionMode.Manual)]
     public class CmdAssemblyMaterial : IExternalCommand
     {
@@ -328,9 +218,6 @@ namespace AstRevitTool.Commands
         }
 
     }
-
-
-
 
     [Transaction(TransactionMode.Manual)]
     public class CmdMatCalc : IExternalCommand
@@ -402,7 +289,6 @@ namespace AstRevitTool.Commands
         }
 
     }
-
 
 
     [Transaction(TransactionMode.Manual)]
@@ -573,7 +459,7 @@ namespace AstRevitTool.Commands
     [Transaction(TransactionMode.ReadOnly)]
     public class CmdUSDExport : IExternalCommand
     {
-        
+
         public Result Execute(
           ExternalCommandData commandData,
           ref string message,
@@ -598,10 +484,10 @@ namespace AstRevitTool.Commands
             var window = new AstRevitTool.Views.Window1();
             window.ShowDialog();
             lodValue = window.lod;
-            
+
 
             SaveFileDialog sdial = new SaveFileDialog();
-            
+
             sdial.Filter = "gltf|*.gltf|glb|*.glb";
             //MessageBox.Show("This function is under development and will be released with Cumulus 3.0!");
             if (sdial.ShowDialog() == DialogResult.OK)
@@ -609,15 +495,15 @@ namespace AstRevitTool.Commands
                 string filename = sdial.FileName;
                 string directory = Path.GetDirectoryName(filename) + "\\";
 
-                
-                
+
+
                 //默认值减面为等级8
                 int combobox_value = lodValue;
                 //RevitExportObj2Gltf contextObj = new RevitExportObj2Gltf(doc, sdial.FileName, combobox_value);
                 //MyGltfExportContext contextGltf = new MyGltfExportContext(doc, combobox_value);
                 //拿到revit的doc  CustomExporter 用户自定义导出
                 RevitExportGltfContext context = new RevitExportGltfContext(doc, sdial.FileName, combobox_value);
-                
+
                 using (CustomExporter exporter = new CustomExporter(doc, context))
                 {
                     //是否包括Geom对象
@@ -693,38 +579,62 @@ namespace AstRevitTool.Commands
         }
     }
 
-
-    [Transaction(TransactionMode.Manual)]
-    public class CmdLifeCycle : IExternalCommand
+    [Transaction(TransactionMode.ReadOnly)]
+    public class CmdSvgBatchExport : IExternalCommand
     {
-        public Result Execute(
-          ExternalCommandData commandData,
-          ref string message,
-          ElementSet elements)
+        public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            UIApplication application = commandData.Application;
-            UIDocument activeUIDocument = commandData.Application.ActiveUIDocument;
-            var app = application.Application;
-            var doc = activeUIDocument.Document;
-            Result rc;
-            try
+            UIApplication uiapp = commandData.Application;
+            UIDocument uidoc = uiapp.ActiveUIDocument;
+            Result rc = Result.Cancelled;
+            var app = uiapp.Application;
+            Document doc = uidoc.Document;
+            ViewSchedule view = doc.ActiveView as ViewSchedule;
+            if (view == null)
             {
-                RevitImportSettings settings = new RevitImportSettings();
-                settings = settings.DeSerializeXML();
-                RevitImport.ImportElements(application, settings, "");
-                //UI2 ui2 = new UI2(doc,app,activeUIDocument);
-                //ui2.Show();
-                rc = Result.Succeeded;
+                MessageBox.Show("Please export in a schedule view");
+                return Result.Cancelled;
             }
-            catch (Exception ex)
+            if (!CmdSvgExport.CheckViewSchedule(view, doc)) return Result.Cancelled;
+            string input = "Single Tenant";
+            List<ElementId> levelIds = SvgExport.uniqueLevelIdsInSchedule(view, doc);
+            //Dictionary<string, floorJson> exportList = new Dictionary<string, floorJson>();
+            /*
+            foreach (ElementId level in levelIds)
             {
-                TaskDialog.Show("Failed!" + "\r\n" + ex.Message, ex.Message + "\r\n" + ex.StackTrace);
-                rc = Result.Failed;
+                SvgExport.floorJson fj = SvgExport.levelFromSchedule(view, level, doc, input,true);
+                //string svgString = fj.svgString;
+                string fileName = "_" + doc.GetElement(level).Name + ".svg";
+                exportList.Add(fileName, fj);
+            }*/
+            //SvgExport.buildingJson bj = new SvgExport.buildingJson(doc, floors);
+            SaveFileDialog dlg = new SaveFileDialog();
+            dlg.FileName = doc.Title;
+            //dlg.DefaultExt = "svg";
+            dlg.CheckFileExists = false;
+            dlg.AddExtension = false;
+            //dlg.Filter = "SVG files(*.svg) | *.svg | All files(*.*) | *.* ";
+            if (dlg.ShowDialog() == DialogResult.OK)
+            {
+                //string filename = dlg.FileName;
+                foreach (ElementId level in levelIds)
+                {
+                    SvgExport.floorJson fj = SvgExport.levelFromSchedule(view, level, doc, input, false,true);
+                    //string svgString = fj.svgString;
+                    string fileName = Directory.GetParent(dlg.FileName).FullName + "\\" + doc.ProjectInformation.Name + "_" + doc.GetElement(level).Name + ".svg";
+                    AstRevitTool.Core.Export.SvgExport.WriteSvg(fj,fileName);
+                }
+                //StreamWriter sw = new StreamWriter(filename);
+                //sw.Write(bj.toJsonString());
+                //sw.Close();
+                string msg = levelIds.Count + " svg files are saved!";
+                string title = "Successfully saved BOMA svg file!";
+                MessageBox.Show(msg, title);
+                rc = Result.Succeeded;
             }
 
             return rc;
         }
-
     }
 
     [Transaction(TransactionMode.ReadOnly)]
@@ -750,8 +660,45 @@ namespace AstRevitTool.Commands
             }
             return checkclass && checkrentable;
         }
+        public static DialogResult ShowInputDialog(string content, ref string input)
+        {
+            System.Drawing.Size size = new System.Drawing.Size(200, 70);
+            System.Windows.Forms.Form inputBox = new System.Windows.Forms.Form();
 
-        public bool CheckViewSchedule(ViewSchedule vs, Document doc)
+            inputBox.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
+            inputBox.ClientSize = size;
+            inputBox.Text = content;
+
+            System.Windows.Forms.TextBox textBox = new System.Windows.Forms.TextBox();
+            textBox.Size = new System.Drawing.Size(size.Width - 10, 23);
+            textBox.Location = new System.Drawing.Point(5, 5);
+            textBox.Text = input;
+            inputBox.Controls.Add(textBox);
+
+            Button okButton = new Button();
+            okButton.DialogResult = System.Windows.Forms.DialogResult.OK;
+            okButton.Name = "okButton";
+            okButton.Size = new System.Drawing.Size(75, 23);
+            okButton.Text = "&OK";
+            okButton.Location = new System.Drawing.Point(size.Width - 80 - 80, 39);
+            inputBox.Controls.Add(okButton);
+
+            Button cancelButton = new Button();
+            cancelButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
+            cancelButton.Name = "cancelButton";
+            cancelButton.Size = new System.Drawing.Size(75, 23);
+            cancelButton.Text = "&Cancel";
+            cancelButton.Location = new System.Drawing.Point(size.Width - 80, 39);
+            inputBox.Controls.Add(cancelButton);
+
+            inputBox.AcceptButton = okButton;
+            inputBox.CancelButton = cancelButton;
+
+            DialogResult result = inputBox.ShowDialog();
+            input = textBox.Text;
+            return result;
+        }
+        public static bool CheckViewSchedule(ViewSchedule vs, Document doc)
         {
             bool r1 = SvgExport.getAreaSchemeFromSchedule(vs, doc) != null;
             if (!r1) return false;
@@ -787,18 +734,12 @@ namespace AstRevitTool.Commands
                 return Result.Cancelled;
             }
             if (!CheckViewSchedule(view, doc)) return Result.Cancelled;
-
+            string input = "Single Tenant";
+            string content = "Type Tenant Type of This Area Plan";
+            ShowInputDialog(content,ref input);
             List<ElementId> levelIds = SvgExport.uniqueLevelIdsInSchedule(view, doc);
-            Dictionary<string, SvgExport.floorJson> exportList = new Dictionary<string, SvgExport.floorJson>();
             IList<SvgExport.floorJson> floors = new List<SvgExport.floorJson>();
-            foreach (ElementId level in levelIds)
-            {
-                SvgExport.floorJson fj = SvgExport.levelFromSchedule(view, level, doc);
-                string fileName = doc.Title + "__" + doc.GetElement(level).Name;
-                exportList.Add(fileName, fj);
-                floors.Add(fj);
-            }
-            SvgExport.buildingJson bj = new SvgExport.buildingJson(doc.Title, floors);
+            
             SaveFileDialog dlg = new SaveFileDialog();
             dlg.FileName = "BomaViz__" + doc.Title;
             dlg.DefaultExt = "json";
@@ -807,6 +748,12 @@ namespace AstRevitTool.Commands
             dlg.Filter = "JSON files(*.json) | *.json | All files(*.*) | *.* ";
             if (dlg.ShowDialog() == DialogResult.OK)
             {
+                foreach (ElementId level in levelIds)
+                {
+                    SvgExport.floorJson fj = SvgExport.levelFromSchedule(view, level, doc, input, true, false);
+                    floors.Add(fj);
+                }
+                SvgExport.buildingJson bj = new SvgExport.buildingJson(doc, floors);
                 string filename = dlg.FileName;
                 StreamWriter sw = new StreamWriter(filename);
                 sw.Write(bj.toJsonString());
@@ -839,7 +786,7 @@ namespace AstRevitTool.Commands
 
                 var window = new AstRevitTool.Views.Window1();
                 window.ShowDialog();
-                
+
                 SaveFileDialog dlg = new SaveFileDialog();
                 dlg.FileName = doc.Title.Replace(" ", "_");
                 dlg.DefaultExt = "dae";
@@ -849,17 +796,18 @@ namespace AstRevitTool.Commands
                 if (dlg.ShowDialog() == DialogResult.OK)
                 {
                     string filename = dlg.FileName;
-                    
+
                     //filename = filename.Replace(" ", "_");
                     OptionsExporter option = new OptionsExporter();
                     option.CollectTextures = window.useTexture;
                     option.OptimizeSolids = false;
-                    option.ExportNodes = window.useNodes;
+                    option.BlackAndWhite = window.blackAndWhite;
+                    option.UseCentimeter = window.useCentimeter;
                     option.SkipInteriorDetails = window.skipInterior;
                     option.FilePath = filename;
                     option.MainView3D = doc.ActiveView as View3D;
 
-                    ExportView3D(doc,option);
+                    ExportView3D(doc, option);
                     string msg = "COLLADA file is saved! Now optimizing for Cumulus...Press OK to continue ";
                     string title = "Successfully saved file!";
                     MessageBox.Show(msg, title);
@@ -871,10 +819,12 @@ namespace AstRevitTool.Commands
                     {
                         Directory.CreateDirectory(outputDir);
                     }
-                    filename = Path.GetFileNameWithoutExtension(input).Replace(" ","_") + ".gltf";
+                    bool binary = window.exportBinary;
+                    filename = Path.GetFileNameWithoutExtension(input).Replace(" ", "_") + (binary? ".glb":".gltf");
                     string output = Path.Combine(outputDir, filename);
 
-                    RunConverter(input, output);
+                    //bool binary = window.exportBinary;
+                    RunConverter(input, output,binary);
                     //msg = "Model file for Cumulus is optimized and saved! File location: " + output;
                     //title = "Successful cumulus convertion!";
                     //MessageBox.Show(msg, title);
@@ -955,21 +905,24 @@ namespace AstRevitTool.Commands
             }
         }
 
-        internal void RunConverter(string input,string outputDir)
+        internal void RunConverter(string input, string outputDir, bool binary)
         {
             string folder = Constants.SCRIPT_FOLDER + "\\COLLADA2GLTF";
             System.Diagnostics.Process p = new System.Diagnostics.Process();
             p.StartInfo.FileName = "cmd.exe";
-            p.StartInfo.UseShellExecute = false;        
-            p.StartInfo.RedirectStandardInput = true;   
-            p.StartInfo.RedirectStandardOutput = true;  
-            p.StartInfo.RedirectStandardError = true;   
+            p.StartInfo.UseShellExecute = false;
+            p.StartInfo.RedirectStandardInput = true;
+            p.StartInfo.RedirectStandardOutput = true;
+            p.StartInfo.RedirectStandardError = true;
             p.StartInfo.CreateNoWindow = true;
             p.StartInfo.WorkingDirectory = folder;
             p.Start();
-
             
             string gltf = string.Format("COLLADA2GLTF-bin -i {0} -o {1}", input, outputDir);
+            if (binary)
+            {
+                gltf += " -b";
+            }
             p.StandardInput.WriteLine(gltf);
 
             p.StandardInput.AutoFlush = true;
@@ -984,7 +937,7 @@ namespace AstRevitTool.Commands
     [Transaction(TransactionMode.Manual)]
     public class CmdBOMA : IExternalCommand
     {
-        
+
         public bool Check_Spec(ViewSchedule vs, Document doc)
         {
             bool checkclass = false;
@@ -1007,7 +960,7 @@ namespace AstRevitTool.Commands
         }
 
 
-        public void runPython(string name, string outDir, string project_name,string input_folder)
+        public void runPython(string name, string outDir, string project_name, string input_folder)
         {
             string folder = input_folder + "\\dist\\app";
             System.Diagnostics.Process p = new System.Diagnostics.Process();
@@ -1021,7 +974,7 @@ namespace AstRevitTool.Commands
             p.Start();
 
 
-            string gltf = string.Format("app.exe -i {0} -o {1} -n{2} -m{3}", '"'+name+'"', '"' + outDir + '"', '"' + project_name + '"', "BOMA");
+            string gltf = string.Format("app.exe -i {0} -o {1} -n{2} -m{3}", '"' + name + '"', '"' + outDir + '"', '"' + project_name + '"', "BOMA");
             p.StandardInput.WriteLine(gltf);
 
             p.StandardInput.AutoFlush = true;
@@ -1059,7 +1012,7 @@ namespace AstRevitTool.Commands
                 }
                 else
                 {
-                    MessageBox.Show("The folder is invalid. Try to force script running...");                   
+                    MessageBox.Show("The folder is invalid. Try to force script running...");
                 }
             }
             if (!Check_Spec(view, doc))
@@ -1084,7 +1037,7 @@ namespace AstRevitTool.Commands
                 string name = doc.Title.Replace(" ", "_") + ".txt";
                 name = Utils.ReplaceInvalidChars(name);
                 view.Export(datafolder, name, opt);
-                runPython(name, dlg.FileName,project,folder);
+                runPython(name, dlg.FileName, project, folder);
                 string logpath = folder + "\\dist\\app\\RESULT_FLAG.txt";
                 if (File.ReadAllText(logpath) == "TRUE")
                 {
@@ -1101,7 +1054,7 @@ namespace AstRevitTool.Commands
                 }
             }
             return rc;
-            
+
         }
 
     }
@@ -1146,17 +1099,17 @@ namespace AstRevitTool.Commands
             bool checkunit = false;
             bool checkarea = false;
             int num = vs.Definition.GetFieldCount();
-            
+
             for (int i = 0; i < num; i++)
             {
                 string colhead = vs.Definition.GetField(i).ColumnHeading;
 
-                if (colhead=="Name")
+                if (colhead == "Name")
                 {
 
                     checkunit = true;
                 }
-                else if (colhead== "Level")
+                else if (colhead == "Level")
                 {
                     checklevel = true;
                 }
@@ -1166,7 +1119,7 @@ namespace AstRevitTool.Commands
                 }
             }
             bool result = checklevel && checkunit && checkarea;
-            if(result == false)
+            if (result == false)
             {
                 MessageBox.Show("Illegal schedule header, Please check if you include Name, Area and Level!");
             }
@@ -1175,7 +1128,7 @@ namespace AstRevitTool.Commands
 
         public bool checkName(string unitName)
         {
-            string[] sub = unitName.Split(' ','(');
+            string[] sub = unitName.Split(' ', '(');
             string name = sub[0];
             char[] chars = new char[] { 'S', 'A', 'B', 'C' };
             char first = name[0];
@@ -1207,7 +1160,7 @@ namespace AstRevitTool.Commands
             string _name = null;
             string[] _info = null;
             int id = -1;
-            
+
             while (null != (line = stream.ReadLine()))
             {
                 a = line
@@ -1215,7 +1168,7 @@ namespace AstRevitTool.Commands
                   .Select<string, string>(s => s.Trim('"'))
                   .ToArray();
 
-                
+
                 // First line of text file contains 
                 // schedule name
 
@@ -1254,12 +1207,12 @@ namespace AstRevitTool.Commands
                         return false;
                     }
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     string problem = "There are some issues when parsing the schedule data! Export process terminated.";
                     MessageBox.Show(problem);
                 }
-                
+
             }
             return true;
         }
@@ -1267,17 +1220,17 @@ namespace AstRevitTool.Commands
         {
             FilteredElementCollector col = new FilteredElementCollector(doc, vs.Id);
             List<SvgExport.roomJson> rjs = new List<SvgExport.roomJson>();
-            foreach(Element element in col)
+            foreach (Element element in col)
             {
                 Room room = element as Room;
-                
+
                 if (room == null) continue;
                 else
                 {
-                    SvgExport.roomJson rj;
-                    Util.DetermineAdjacentElementLengthsAndWallAreas(room,out rj);
-                    rjs.Add(rj);
-                    
+                    //SvgExport.roomJson rj;
+                    //Util.DetermineAdjacentElementLengthsAndWallAreas(room,out rj);
+                    //rjs.Add(rj);
+
                     string name = room.Name;
                     bool current = checkName(name);
                     if (!current)
@@ -1321,7 +1274,7 @@ namespace AstRevitTool.Commands
             p.Start();
 
 
-            string matrix = string.Format("app.exe -i {0} -o {1} -n{2} -m{3}", '"' + name + '"', '"' + outDir + '"', '"' + project_name + '"', "UNITMATRIX");
+            string matrix = string.Format("app.exe -i {0} -o {1} -n{2} -m{3}", '"' + name + '"', '"' + outDir + '"', '"' + project_name + '"', "UNITMATRIXSCHEDULE");
             p.StandardInput.WriteLine(matrix);
 
             p.StandardInput.AutoFlush = true;
@@ -1341,14 +1294,14 @@ namespace AstRevitTool.Commands
             var app = uiapp.Application;
             Document doc = uidoc.Document;
             ViewSchedule view = doc.ActiveView as ViewSchedule;
-            CheckViewSchedule(view, doc);
+            //CheckViewSchedule(view, doc);
             string project = doc.ProjectInformation.Name;
             if (view == null)
             {
                 MessageBox.Show("Please export in a schedule view");
                 return Result.Cancelled;
             }
-            
+
             string folder = Constants.SCRIPT_FOLDER + "\\PROGRAMMING";
             string datafolder = folder + "\\dist\\app\\data";
             //string testfile = datafolder + "\\RoomSchedule---20021_WhitinAve_v2020_detached_waldron7YAGT.txt";
@@ -1363,13 +1316,13 @@ namespace AstRevitTool.Commands
                 MessageBox.Show("Schedule does not contain necessary Unit Matrix infromation!");
                 return Result.Cancelled;
             };
-            
+
             SaveFileDialog dlg = new SaveFileDialog();
             dlg.FileName = "UnitMatrix_" + doc.Title.Replace(" ", "_");
             dlg.DefaultExt = "xlsx";
             dlg.CheckFileExists = false;
             dlg.AddExtension = true;
-            dlg.Filter = "Excel Files|*.xls;*.xlsx;*.xlsm"; 
+            dlg.Filter = "Excel Files|*.xls;*.xlsx;*.xlsm";
             if (dlg.ShowDialog() == DialogResult.OK)
             {
                 string filename = dlg.FileName;
@@ -1383,9 +1336,10 @@ namespace AstRevitTool.Commands
                 name = type + "---" + name;
                 view.Export(datafolder, name, opt);
                 //name = "RoomSchedule---20021_WhitinAve_v2020_detached_waldron7YAGT.txt";
-                bool toContinue = ScheduleDataParser(datafolder + "\\" + name);
-                if (!toContinue) { return Result.Cancelled; }
-                
+                //bool toContinue = ScheduleDataParser(datafolder + "\\" + name);
+                //if (!toContinue) { return Result.Cancelled; }
+                string output = "Unit data exported! Now running script to generate Excel table...";
+                MessageBox.Show(output);
                 runPython(name, dlg.FileName, project);
                 string logpath = folder + "\\dist\\app\\RESULT_FLAG.txt";
                 if (File.ReadAllText(logpath) == "TRUE")
@@ -1406,7 +1360,7 @@ namespace AstRevitTool.Commands
         }
 
     }
-    
+
     [Transaction(TransactionMode.Manual)]
     public class CmdDocakble : IExternalCommand
     {
@@ -1423,6 +1377,90 @@ namespace AstRevitTool.Commands
             return Result.Succeeded;
         }
 
-        
+
+    }
+
+    [Transaction(TransactionMode.ReadOnly)]
+
+    public class CmdCustomAreaScheduleExport : IExternalCommand
+    {
+        public class AreaSelectionFilter : ISelectionFilter
+        {
+            public bool AllowElement(Element elem)
+            {
+                // Return true if the element is an Area
+                return elem.Category.Id.IntegerValue == (int)BuiltInCategory.OST_AreaSchemes;
+            }
+
+            public bool AllowReference(Autodesk.Revit.DB.Reference reference, XYZ position)
+            {
+                return false;
+            }
+        }
+        public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
+        {
+            // Access the Revit document and user interface
+            UIDocument uidoc = commandData.Application.ActiveUIDocument;
+            Document doc = uidoc.Document;
+            //TaskDialog dialog = new TaskDialog("Export Area Table");
+
+            // Allow the user to select an area scheme
+            Element areaScheme = null;
+            ISelectionFilter filter = new AreaSelectionFilter();
+            FilteredElementCollector areaSchemeCollector = new FilteredElementCollector(doc).OfClass(typeof(AreaScheme));
+            if (areaSchemeCollector.Any())
+            {
+                Autodesk.Revit.DB.Reference areaSchemeRef = uidoc.Selection.PickObject(ObjectType.Element, filter,
+                    "Please select an area scheme to export.");
+                if (areaSchemeRef != null)
+                    areaScheme = doc.GetElement(areaSchemeRef) as AreaScheme;
+            }
+            if (areaScheme == null)
+                return Result.Cancelled;
+
+            // Retrieve all enclosed and placed areas in the selected area scheme
+            FilteredElementCollector areaCollector = new FilteredElementCollector(doc)
+                .OfClass(typeof(Area))
+                .OfCategory(BuiltInCategory.OST_Areas)
+                .WhereElementIsNotElementType();
+
+            var areas = areaCollector.ToList().Select(x => x as Area).Where(a => a.AreaScheme.Id == areaScheme.Id && a.Area != 0 && a.LevelId != null);
+
+            // Get all available area parameters and allow the user to select which ones to include in the text file
+            IList<string> parameterNames = new List<string>();
+            parameterNames.Add(Constants.LeasingParameter);
+            parameterNames.Add(Constants.ProgrammingParameter);
+            RoomFilter rfilter = new RoomFilter();
+            var rooms = new FilteredElementCollector(doc).WherePasses(rfilter).ToElements().Cast<Room>().ToList<Room>();
+
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.DefaultExt = "txt";
+            saveFileDialog.AddExtension = true;
+
+            if (saveFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                using (StreamWriter writer = new StreamWriter(saveFileDialog.FileName))
+                {
+                    // Write the column headers based on the selected parameters
+
+                    writer.WriteLine("Name\tRoomName\tArea\tLevel\t" + string.Join("\t", parameterNames));
+
+                    // Loop through each area and write the desired information to the text file
+                    foreach (Area area in areas)
+                    {
+                        var loc = area.Location;
+                        LocationPoint lp = loc as LocationPoint;
+                        XYZ p = (null == lp) ? XYZ.Zero : lp.Point;
+                        Room room = rooms.Where(x => x.RoomContains(p)).FirstOrDefault();
+                        string roomtag = room.Name;
+                        string[] parameterValues = parameterNames.Select(p => area.LookupParameter(p)?.AsString() ?? "").ToArray();
+                        writer.WriteLine($"{area.Name}\t{roomtag}\t{area.Area}\t{area.Level.Name}\t{string.Join("\t", parameterValues)}");
+                    }
+                }
+            }
+
+
+            return Result.Succeeded;
+        }
     }
 }

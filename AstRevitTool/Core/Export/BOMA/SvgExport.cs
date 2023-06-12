@@ -15,6 +15,10 @@ using AstRevitTool.Core.Analysis;
 using BoundarySegment = Autodesk.Revit.DB.BoundarySegment;
 using Newtonsoft.Json;
 using AstRevitTool;
+using Autodesk.Revit.DB.Electrical;
+using AstRevitTool.Views;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using static AstRevitTool.Core.Export.SvgExport;
 
 namespace AstRevitTool.Core.Export
 {
@@ -49,6 +53,8 @@ namespace AstRevitTool.Core.Export
 
         private static BoundingBoxXYZ MergeBoundingBoxXyz(List<Element> areas, ViewPlan vp)
         {
+            FBXExportOptions options = new FBXExportOptions();
+            
             if (areas.Count == 0) return null;
             else if(areas.Count == 1) return areas[0].get_BoundingBox(vp);
             BoundingBoxXYZ bb = new BoundingBoxXYZ();
@@ -58,6 +64,40 @@ namespace AstRevitTool.Core.Export
                 bb = MergeBoundingBoxXyz(bb, area.get_BoundingBox(vp));
             }
             return bb;
+        }
+
+        private static string styleFromClassification(string classification)
+        {
+            string fillColor = "#FDF2FF";//Default fill color is white
+            string strokeColor = "#000000";
+            switch (classification)
+            {
+                case "TENANT AREA":
+                    fillColor = "lavender";
+                    break;
+                case "BUILDING AMENITY AREA":
+                    fillColor = "#DDE5C0";
+                    break;
+                case "BUILDING SERVICE AREA":
+                    fillColor = "#D9D9D9";
+                    break;
+                case "TENANT ANCILLARY AREA":
+                    fillColor = "#F1DAE4";
+                    break;
+                case "FLOOR SERVICE AREA":
+                    fillColor = "#DDE6B8";
+                    break;
+                case "RETAIL":
+                    fillColor = "#E5CFFF";
+                    break;
+                case "MAJOR VERTICAL PENETRATION":
+                    fillColor = "#FF7F7E";
+                    break;  
+                default:
+                    break;
+            }
+            string style = string.Format("fill:{0};stroke:{1};stroke-width:1", fillColor, strokeColor);
+            return style;
         }
 
         public class objectJson
@@ -129,24 +169,131 @@ namespace AstRevitTool.Core.Export
                 this.effectiveWidth = effectiveWidth;
             }
         }
-        public class buildingJson: objectJson
+        public class detailJson : objectJson
         {
             public string title;
+            public string pnumber;
+            public string client;
+            public geoJson location;
+            public detailJson(Document doc)
+            {
+                this.title = doc.ProjectInformation.Name;
+                this.pnumber = doc.ProjectInformation.Number;
+                this.client = doc.ProjectInformation.ClientName;
+                this.location = new geoJson(doc);
+            }
+        }
+        public class metricJson : objectJson {
+            public string grossSquareFootage;
+            public string totalRentableArea;
+            public string buildingAllocationRatio;
+            public metricJson()
+            {
+                this.grossSquareFootage = "none";
+                this.totalRentableArea = "none";
+                this.buildingAllocationRatio = "none";
+            }
+        }
+
+        public class versionJson: objectJson
+        {
+            public int projectVersion;
+            public string modifiedDate;
+            public versionJson(int version)
+            {
+                this.projectVersion = version;
+                this.modifiedDate = DateTime.Now.ToString();
+            }
+        }
+
+        public class geoJson:objectJson
+        {
+            public string neighborhood;
+            public string street;
+            public string city;
+            public string state;
+            public string zip;
+            public geoJson(Document doc)
+            {
+                this.neighborhood = doc.ProjectInformation.BuildingName;
+                this.street = doc.ProjectInformation.Address;
+                this.city = "";
+                this.state = "";
+                this.zip = "00000";
+            }
+        }
+        public class buildingJson: objectJson
+        {
+            public detailJson details;
+            public metricJson totalMetrics;
+            public versionJson versioning;
+
+            public string title;
             public int totalArea;
-            public Newtonsoft.Json.Linq.JRaw[] levels;
+            public string date;
+            public Newtonsoft.Json.Linq.JRaw[] floors;
             public int totalLevel;
 
-            public buildingJson(string title,IEnumerable<floorJson> floors)
+            public buildingJson(Document doc,IEnumerable<floorJson> floors)
             {
-                this.title = title;
-                this.totalArea = floors.Sum(x => x.boundaryArea);
+                this.details = new detailJson(doc);
+                this.totalMetrics = new metricJson();
+                this.versioning = new versionJson(2);
+
+                this.title = doc.Title;
+                this.totalArea = floors.Sum(x => x.Value[0].boundaryArea);
+                this.date = DateTime.Today.ToString();
                 this.totalLevel = floors.Count();
-                this.levels = floors.Select(x => new Newtonsoft.Json.Linq.JRaw(x.toJsonString())).ToArray();
+                this.floors = floors.Select(x => new Newtonsoft.Json.Linq.JRaw(x.toJsonString())).ToArray();
             }          
         }
         public class floorJson: objectJson
         {
             public string label = "";
+            public List<valueItemJson> Value;
+            public List<locationJson> locationJsons = new List<locationJson>();
+
+            public floorJson(string label, string tenantType,IEnumerable<locationJson> locations, bool exportSvgData = false)
+            {
+                this.label = label;
+                if (exportSvgData)
+                {
+                    this.locationJsons = locations.ToList();
+                }
+                //this.svgString = writeSvg(locations);
+                valueItemJson value = new valueItemJson(tenantType, locations);
+                Value = new List<valueItemJson>();
+                Value.Add(value);
+            }
+
+            
+           
+        }
+
+        public static void WriteSvg(floorJson fj, string filename)
+        {
+            StreamWriter sw = new StreamWriter(filename);
+            //StringBuilder sb = new StringBuilder();
+            string header = string.Format("<svg height=\"{0}\" width=\"{1}\" viewBox=\"0 0 {1} {0}\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">", _target_height_size, _target_width_size);
+            sw.WriteLine(header);
+            //sb.AppendLine(header);
+
+            foreach (locationJson location in fj.locationJsons)
+            {
+                string d = location.path;
+                string style = styleFromClassification(location.name.ToUpper());
+                string areaGeo = string.Format("    <path d=\"{0}\"   style= \"{1}\" />", d, style);
+                sw.WriteLine(areaGeo);
+            }
+            sw.WriteLine("</svg>");
+            sw.Close();
+            //this.svgString = sb.ToString();
+            return;
+        }
+
+        public class valueItemJson : objectJson
+        {
+            public string TenantType = "";
             public string viewBox = "0 0 " + _target_width_size.ToString() + " " + _target_height_size.ToString();
             public int boundaryArea = 0;
             public Newtonsoft.Json.Linq.JRaw[] locations;
@@ -154,14 +301,13 @@ namespace AstRevitTool.Core.Export
             public string viewName = "";
             public string[] floorPlanLines;
 
-            public floorJson(string label, IEnumerable<locationJson> locations)
+            public valueItemJson(string tenantType, IEnumerable<locationJson> locations)
             {
-                this.label = label;
+                this.TenantType = tenantType;
                 this.boundaryArea = locations.Sum(x => x.area);
                 this.locations = locations.Select(x => new Newtonsoft.Json.Linq.JRaw(x.toJsonString())).ToArray();
                 this._locations = locations.ToList();
             }
-           
         }
 
         public class locationJson: objectJson
@@ -300,7 +446,7 @@ namespace AstRevitTool.Core.Export
             if(name == null) MessageBox.Show("Area without BOMA Space Classification! Area ID: " + area.Id.ToString());
             string id = area.Id.ToString();
             string path = svgPathFromArea(area, bb);
-            int _area = ((int)area.Area);
+            int _area = (int)Math.Round(area.Area);
             string spaceID = area.Name;
             return new locationJson(name, id, path,_area,spaceID,exclusion);
         }
@@ -319,10 +465,11 @@ namespace AstRevitTool.Core.Export
         {
             ElementId viewId = l.FindAssociatedPlanViewId();
             if (viewId == null) return null;
+            
             return l.Document.GetElement(viewId) as ViewPlan;
         }
             
-        public static floorJson levelFromSchedule(ViewSchedule vs,ElementId levelId,Document doc)
+        public static floorJson levelFromSchedule(ViewSchedule vs,ElementId levelId,Document doc, string rentingType, bool writeLines = true, bool writeSvg = false)
         {
             Level l = doc.GetElement(levelId) as Level;
             ElementLevelFilter filter = new ElementLevelFilter(levelId);
@@ -330,11 +477,21 @@ namespace AstRevitTool.Core.Export
             LogicalAndFilter lf = new LogicalAndFilter(filter,filter2);
             AreaScheme areaScheme = getAreaSchemeFromSchedule(vs, doc);
             IList<Element> allareaonLevel = areaScheme.GetDependentElements(lf).Select(x => doc.GetElement(x)).ToList();           
-            FilteredElementCollector viewplans = new FilteredElementCollector(doc).OfClass(typeof(ViewPlan));
-            IList<Element> vps = viewplans.ToElements();
+            var viewplans = new FilteredElementCollector(doc).OfClass(typeof(ViewPlan)).Where(x=>x.LevelId==levelId);
+            //IList<Element> vps = viewplans.ToElements();
             ViewPlan vp = viewFromLevel(l);
             if(vp == null)
             {
+                /*int cand = 0;
+                int ind = 0;
+                foreach(ViewPlan v in viewplans)
+                {
+                    if (v.Name.Contains("Parent"))
+                    {
+                        ind = cand;
+                    }
+                    cand++;
+                }*/
                 vp = viewplans.ToList()[0] as ViewPlan;
                 if(vp == null)
                 {
@@ -342,33 +499,50 @@ namespace AstRevitTool.Core.Export
                     return null;
                 }
             }
-            IList<XYZ> linePts;
-            LineDrawings2DExportContext context = new LineDrawings2DExportContext(out linePts);
-            CustomExporter exporter = new CustomExporter(doc, context);
-            exporter.Export2DIncludingAnnotationObjects = false;
-            exporter.Export2DGeometricObjectsIncludingPatternLines = false;
-            exporter.ShouldStopOnError = true;
-            exporter.Export(vp);
-            string[] floorPlanLines = GetSvgLinesFromPoints(linePts, vp,doc.Application.ShortCurveTolerance);
+            
             //BoundingBoxXYZ bb = vp.get_BoundingBox(vp);
             BoundingBoxXYZ bb = vp.CropBox == null ? new BoundingBoxXYZ() : vp.CropBox; ;
             string label = l.Name;
+            bool hasTenant = false;
             List<locationJson> locations = new List<locationJson>();
             foreach(Element el in allareaonLevel)
             {
                 if(el is Area)
                 {
                     Area area = (Area)el;
+                    
                     if(area.Area > 0.0 && area.LookupParameter(boma).AsString() != null)
                     {
+                        string areaCategory = area.LookupParameter(boma).AsString().ToUpper();
+                        if((!hasTenant) && areaCategory.Contains("TENANT AREA"))
+                        {
+                            hasTenant = true;
+                        }
                         locationJson location = locationFromArea(area, bb);
                         locations.Add(location);
                     }
                 }
             }
-            floorJson fj = new floorJson(label, locations);
-            fj.viewName = vp.Name;
-            fj.floorPlanLines = floorPlanLines;
+            string tenantOption = hasTenant ? rentingType : "N/A";
+            floorJson fj = new floorJson(label,tenantOption, locations,writeSvg);
+            
+            fj.Value[0].viewName = vp.Title;
+            //string[] floorPlanLines;
+            //string planName = vp.Name;
+            if (writeLines)
+            {
+                IList<XYZ> linePts;
+                LineDrawings2DExportContext context = new LineDrawings2DExportContext(out linePts);
+                CustomExporter exporter = new CustomExporter(doc, context);
+                exporter.Export2DIncludingAnnotationObjects = false;
+                exporter.Export2DGeometricObjectsIncludingPatternLines = false;
+                exporter.ShouldStopOnError = true;
+                exporter.Export(vp);
+                string[] floorPlanLines = GetSvgLinesFromPoints(linePts, vp, doc.Application.ShortCurveTolerance);
+                fj.Value[0].floorPlanLines = floorPlanLines;
+            }
+
+            //fj.Value[0].floorPlanLines = floorPlanLines;
             return fj;
 
         }

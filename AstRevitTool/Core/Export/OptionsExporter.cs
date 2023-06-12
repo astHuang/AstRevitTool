@@ -23,6 +23,10 @@ namespace AstRevitTool.Core.Export
 
         public bool ExportNodes { get; set; }
 
+        public bool UseCentimeter { get; set; }
+
+        public bool BlackAndWhite { get; set; }
+
         public int LevelOfDetail { get; set; }
 
         public bool OptimizeSolids { get; set; }
@@ -42,6 +46,8 @@ namespace AstRevitTool.Core.Export
             this.InsertionPoint = 0;
             this.SkipInteriorDetails = false;
             this.CollectTextures = true;
+            this.BlackAndWhite = false;
+            this.UseCentimeter = false;
             this.UnicodeSupport = true;
             this.ExportNodes = false;
             this.LevelOfDetail = 4;
