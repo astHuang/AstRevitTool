@@ -9,6 +9,7 @@ namespace AstRevitTool.Masterclass.Dockable
 {
     public class RequirementWrapper : INotifyPropertyChanged
     {
+        public string input { get; set; }
         public string FamilyName { get; set; }
 
         public string FamilyType { get; set; }

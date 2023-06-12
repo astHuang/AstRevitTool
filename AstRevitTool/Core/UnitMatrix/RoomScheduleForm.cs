@@ -35,7 +35,6 @@ using Autodesk.Revit.DB.Architecture;
 using Autodesk.Revit.DB.Events;
 using System.Windows.Controls;
 using System.Text;
-using CommunityToolkit.Mvvm.DependencyInjection;
 
 namespace AstRevitTool.Core.UnitMatrix
 {

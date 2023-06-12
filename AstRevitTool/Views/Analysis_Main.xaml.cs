@@ -15,9 +15,9 @@ using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using AstRevitTool.Core.Analysis;
 using AstRevitTool.Core;
-using Syncfusion.UI.Xaml.TreeGrid;
 using System.IO;
 using System.Windows.Forms;
+using System.Web.UI.WebControls;
 
 namespace AstRevitTool.Views
 {
@@ -241,17 +241,39 @@ namespace AstRevitTool.Views
             }
             if (selectedItems.Count == 0) { return; }
             List<string> toRemove = new List<string>();
+            Dictionary<string,string> ItemGroupPair = new Dictionary<string,string>();
+            var orig_filter = Model.DictFilters;
+
             foreach(var item in selectedItems)
             {
                 SourceDataTypes data = item as SourceDataTypes;
-                if(!toRemove.Contains(data.Name))
-                {
-                    toRemove.Add(data.Name);
-                }
-            }
-            
 
-            Model.RemoveFilter(toRemove);
+                
+                string groupName = data.ColorGroup;
+                
+
+                orig_filter.TryGetValue(groupName, out FilterData currentData);
+                if(currentData != null)
+                {
+                    currentData.RemoveDataElement(data);
+                }
+                /*
+                string dataName = data.RuleName;
+                ItemGroupPair.Add(dataName, groupName);
+                if(!toRemove.Contains(data.ColorGroup))
+                {
+                    toRemove.Add(data.ColorGroup);
+                }
+                */
+                data._color = Colors.Transparent;
+                data.Background = new SolidColorBrush(data._color);
+                data.ColorGroup = data.RuleName;
+            }
+
+            Model.UpdateFilter(orig_filter);
+            Model.ViewFilter();
+            //Model.RemoveFilter(ItemGroupPair);
+            //Model.RemoveFilter(toRemove);
             DataContext= Model;
         }
 
@@ -284,29 +306,159 @@ namespace AstRevitTool.Views
                 selectedItems = multiSelectTreeView_byTransparency.SelectedItems;
             }
             if (selectedItems.Count == 0) { return; }
-            Dictionary<String, FilterData> m_dictFilters = new Dictionary<String, FilterData>();
-            foreach (var item in selectedItems)
-            {               
-                SourceDataTypes data = item as SourceDataTypes;
-                FilterData currentData = createFilterFromData(data);
-                if (currentData.RuleData == null || currentData.RuleData.Count == 0)
-                {
-                    continue;
+            Dictionary<String, FilterData> m_dictFilters = new Dictionary<String, FilterData>(this.Model.DictFilters);
+            //Dictionary<String, List<FilterData>> m_dictFilters = new Dictionary<String, List<FilterData>>();
+
+            process_info.Text = "Assigning color for selection";
+            var csd = new ColorSelectionDialog();
+            if (csd.Show() == ItemSelectionDialogResult.Confirmed)
+            {
+                Autodesk.Revit.DB.Color currentColor = csd.SelectedColor;
+
+                //new version: color by data group
+                List<SourceDataTypes> dataList = selectedItems.Cast<SourceDataTypes>().ToList();
+
+                if(dataList.Count > 0) {
+                    var groupedData = dataList.GroupBy(data => data.Hierarchy)
+                              .ToDictionary(group => group.Key, group => group.ToList());
+
+                    foreach (KeyValuePair<SourceDataCategory, List<SourceDataTypes>> kvp in groupedData)
+                    {
+                        var sourceDataCategory = kvp.Key;
+                        var sourceDataList = kvp.Value;
+                        string content = "Filter name for group at hierarchy " + kvp.Key.ToString();
+                        string value = kvp.Value.First().Notes;
+                        var dg = AstRevitTool.Commands.CmdSvgExport.ShowInputDialog(content, ref value);
+
+                        foreach(SourceDataTypes data in  sourceDataList)
+                        {
+                            string groupName = data.ColorGroup;
+
+                            if (groupName != null)
+                            {
+                                this.Model.DictFilters.TryGetValue(groupName, out FilterData currentData);
+                                if (currentData != null)
+                                {
+                                    currentData.RemoveDataElement(data);
+                                }
+                            }
+
+                            //this.Model.DictFilters.TryGetValue(groupName, out FilterData currentData);
+                            /*if (currentData != null)
+                            {
+                                currentData.RemoveDataElement(data);
+                            }*/
+                        }
+                        if (value == null || value == "" || dg == System.Windows.Forms.DialogResult.Cancel)
+                        {
+                            System.Windows.MessageBox.Show("No filter group name, will color individually");
+                            foreach(SourceDataTypes data in sourceDataList)
+                            {
+                                
+                                data._color = Util.FormColorFromRevit(currentColor);
+                                data.Background = new SolidColorBrush(data._color);
+                                FilterData currentData = createFilterFromDataList(new List<SourceDataTypes>() { data});
+                                if (currentData.m_originalDataList == null || currentData.m_originalDataList.Count == 0)
+                                {
+                                    continue;
+                                }
+
+                                //process_info.Text = "Assigning color for:\n" + data.Name;
+
+                                //currentData.originalData._color = Util.FormColorFromRevit(currentColor);
+                                //currentData.originalData.Background = new SolidColorBrush(currentData.originalData._color);
+                                if (m_dictFilters.Keys.Contains(data.Name))
+                                {
+                                    m_dictFilters[data.Name] = currentData;
+                                }
+                                else
+                                {
+                                    m_dictFilters.Add(data.Name, currentData);
+                                }
+                                
+                            }
+                        }
+
+                        else if (m_dictFilters.Keys.Contains(value))
+                        {
+                            System.Windows.MessageBox.Show("Same filter detected, will add the items to the filter");
+                            sourceDataList.ForEach(data => {
+                                data._color = Util.FormColorFromRevit(currentColor);
+                                data.Background = new SolidColorBrush(data._color);
+                                data.ColorGroup = value;//assign unique value to data's color group
+                            });
+                            sourceDataList.ForEach(x =>
+                            m_dictFilters[value].AddDataElement(x)                        
+                            ) ;
+                        }
+                        else
+                        {
+                            FilterData currentData = createFilterFromDataList(sourceDataList);
+                            sourceDataList.ForEach(data => {
+                                data._color = Util.FormColorFromRevit(currentColor);
+                                data.Background = new SolidColorBrush(data._color);
+                                data.ColorGroup = value;
+                            });
+                            m_dictFilters.Add(value, currentData);
+                        }
+
+                        /*
+                        foreach(var data in sourceDataList)
+                        {
+                            if (this.Model.DictFilters.Keys.Contains(data.ColorGroup))
+                            {
+                                this.Model.DictFilters[data.ColorGroup].RemoveDataElement(data);
+                            }
+                        }*/
+                    }
                 }
-                process_info.Text = "Assigning color for:\n" + data.Name;
-                var csd = new ColorSelectionDialog();
-                if (csd.Show() == ItemSelectionDialogResult.Confirmed)
+
+                /*
+                else
                 {
-                    Autodesk.Revit.DB.Color currentColor = csd.SelectedColor;
+                    SourceDataTypes data = selectedItems[0] as SourceDataTypes;
+                    FilterData currentData = createFilterFromData(data);
+                    if (currentData.RuleData == null || currentData.RuleData.Count == 0)
+                    {
+                        System.Windows.MessageBox.Show("The item you select is unable to assign color");
+                        return;
+                    }
+
+                    process_info.Text = "Assigning color for:\n" + data.Name;
+
                     currentData.originalData._color = Util.FormColorFromRevit(currentColor);
                     currentData.originalData.Background = new SolidColorBrush(currentData.originalData._color);
                     m_dictFilters.Add(data.Name, currentData);
-                }
-                csd.Dispose();
+
+                }*/
+                /*
+                //old version color by individual data
+                    foreach (var item in selectedItems)
+                    {
+                        SourceDataTypes data = item as SourceDataTypes;
+                        FilterData currentData = createFilterFromData(data);
+                        if (currentData.RuleData == null || currentData.RuleData.Count == 0)
+                        {
+                            continue;
+                        }
+
+                        process_info.Text = "Assigning color for:\n" + data.Name;
+
+                        currentData.originalData._color = Util.FormColorFromRevit(currentColor);
+                        currentData.originalData.Background = new SolidColorBrush(currentData.originalData._color);
+                        m_dictFilters.Add(data.Name, currentData);
+
+                }*/
+                
+                
             }
+            csd.Dispose();
+            
             if (m_dictFilters.Count == 0)
             {
-                System.Windows.MessageBox.Show("No Available filters to color");
+                System.Windows.MessageBox.Show("Unable to color selection. \n Possible reasons: " +
+                    "\n You select items with different hierarchies at the same time" +
+                    "\n You select the bottom hierarchy which is meaningless to color");
                 return;
             }
             
@@ -323,7 +475,7 @@ namespace AstRevitTool.Views
             FilterData m_currentFilterData = new FilterData(this.MainDoc, new List<BuiltInCategory>(), new List<FilterRuleBuilder>());
 
             //case 1 no child == return empty dictionary: material in by category, type in by material, material in by wwr
-            if (data.Children == null || data.Children.Count == 0)
+            if (data.Hierarchy != SourceDataCategory.ElementSubMaterial && data.Hierarchy !=SourceDataCategory.ElementSubType)
             {
                 return m_currentFilterData;
             }
@@ -341,7 +493,30 @@ namespace AstRevitTool.Views
             //case 3: has children but not core data == create one filterdata with multiple rules
             modifyFilterRulesFromData(data, m_currentFilterData);
             m_currentFilterData.originalData = data;
+            m_currentFilterData.m_originalDataList = new List<SourceDataTypes> { data };
             m_currentFilterData.SetNewCategories(data.BICs.ToList());
+            return m_currentFilterData;
+        }
+
+        private FilterData createFilterFromDataList(IEnumerable<SourceDataTypes> dataList)
+        {
+            HashSet<BuiltInCategory> bics = new HashSet<BuiltInCategory>();
+            FilterData m_currentFilterData = new FilterData(this.MainDoc, new List<BuiltInCategory>(), new List<FilterRuleBuilder>());
+            SourceDataCategory hrc = dataList.First().Hierarchy;
+            bool assign = dataList.All(data => data.Hierarchy == hrc);
+            if (!assign)
+            {
+                return m_currentFilterData;
+            }
+            //m_currentFilterData.m_originalDataList.AddRange(dataList);
+            foreach(SourceDataTypes data in dataList)
+            {
+                m_currentFilterData.AddDataElement(data);
+                bics.UnionWith(data.BICs);
+            }
+
+            m_currentFilterData.SetNewCategories(bics.ToList());
+
             return m_currentFilterData;
         }
 
@@ -366,6 +541,11 @@ namespace AstRevitTool.Views
                     modifyFilterRulesFromData(child, currentFilterData);
                 }
             }
+
+        }
+
+        public void removeFilterRulesFromData(string ruleName, FilterData currentFilterData)
+        {
 
         }
         private void btnPrint_Click(object sender, RoutedEventArgs e)

@@ -225,7 +225,9 @@
                                             <ColumnDefinition SharedSizeGroup="Toggle"/>
                                             <ColumnDefinition SharedSizeGroup="Area"/>
                                             <ColumnDefinition SharedSizeGroup="Color"/>
+                                            
                                             <ColumnDefinition SharedSizeGroup="Notes" Width="*"/>
+                                            <ColumnDefinition SharedSizeGroup="ColorGroup"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="Name" Style="{StaticResource TextBlockBoldStyle}"/>
                                         <!-- Empty TreeViewItem to measure the size of its ToggleButton into the "Toggle" group-->
@@ -233,6 +235,7 @@
                                         <TextBlock Grid.Column="3" Text="Area" Style="{StaticResource TextBlockBoldStyle}"/>
                                         <TextBlock Grid.Column="4" Text="Color" Style="{StaticResource TextBlockBoldStyle}"/>
                                         <TextBlock Grid.Column="5" Text="Notes" Style="{StaticResource TextBlockBoldStyle}"/>
+                                        <TextBlock Grid.Column="6" Text="Filter" Style="{StaticResource TextBlockBoldStyle}"/>
                                     </Grid>
                                 </TreeViewItem.Header>
                             </TreeViewItem>
@@ -254,11 +257,13 @@
                                                 <ColumnDefinition SharedSizeGroup="Area"/>
                                                 <ColumnDefinition SharedSizeGroup="Color"/>
                                                 <ColumnDefinition SharedSizeGroup="Notes"/>
+                                                <ColumnDefinition SharedSizeGroup="ColorGroup"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="{Binding Name}" Style="{StaticResource TextBlockStyle}"/>
                                             <TextBlock Grid.Column="3" Text="{Binding Area}" Style="{StaticResource TextBlockStyle}"/>
                                             <TextBlock Grid.Column="4" Text="   " Background="{Binding Background}" Style="{StaticResource TextBlockStyle}"/>
                                             <TextBlock Grid.Column="5" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
+                                            <TextBlock Grid.Column="6" Text="{Binding DisplayColorGroupName}" Style="{StaticResource TextBlockStyle}"/>
                                         </Grid>
 
                                         <!-- Level 1 template leaves space for 1 child "Toggle" level -->
@@ -272,11 +277,13 @@
                                                         <ColumnDefinition SharedSizeGroup="Area"/>
                                                         <ColumnDefinition SharedSizeGroup="Color"/>
                                                         <ColumnDefinition SharedSizeGroup="Notes"/>
+                                                        <ColumnDefinition SharedSizeGroup="ColorGroup"/>
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Grid.Column="0" Text="{Binding Name}" Style="{StaticResource TextBlockStyle}"/>
                                                     <TextBlock Grid.Column="3" Text="{Binding Area}" Style="{StaticResource TextBlockStyle}"/>
                                                     <TextBlock Grid.Column="4" Text="   " Background="{Binding Background}" Style="{StaticResource TextBlockStyle}"/>
                                                     <TextBlock Grid.Column="5" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
+                                                    <TextBlock Grid.Column="6" Text="{Binding DisplayColorGroupName}" Style="{StaticResource TextBlockStyle}"/>
                                                 </Grid>
 
                                                 <!-- Level 2 template has no children -->
@@ -290,11 +297,13 @@
                                                                 <ColumnDefinition SharedSizeGroup="Area"/>
                                                                 <ColumnDefinition SharedSizeGroup="Color"/>
                                                                 <ColumnDefinition SharedSizeGroup="Notes"/>
+                                                                <ColumnDefinition SharedSizeGroup="ColorGroup"/>
                                                             </Grid.ColumnDefinitions>
                                                             <TextBlock Grid.Column="0" Text="{Binding Name}" Style="{StaticResource TextBlockStyle}"/>
                                                             <TextBlock Grid.Column="3" Text="{Binding Area}" Style="{StaticResource TextBlockStyle}"/>
                                                             <TextBlock Grid.Column="4" Text="   " Background="{Binding Background}" Style="{StaticResource TextBlockStyle}"/>
                                                             <TextBlock Grid.Column="5" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
+                                                            <TextBlock Grid.Column="6" Text="{Binding DisplayColorGroupName}" Style="{StaticResource TextBlockStyle}"/>
                                                         </Grid>
                                                     </HierarchicalDataTemplate>
                                                 </HierarchicalDataTemplate.ItemTemplate>
@@ -418,6 +427,7 @@
                                             <ColumnDefinition SharedSizeGroup="Area"/>
                                             <ColumnDefinition SharedSizeGroup="Color"/>
                                             <ColumnDefinition SharedSizeGroup="Notes" Width="*"/>
+                                            <ColumnDefinition SharedSizeGroup="ColorGroup" Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="Name" Style="{StaticResource TextBlockBoldStyle}"/>
                                         <!-- Empty TreeViewItem to measure the size of its ToggleButton into the "Toggle" group-->
@@ -425,6 +435,8 @@
                                         <TextBlock Grid.Column="3" Text="Area" Style="{StaticResource TextBlockBoldStyle}"/>
                                         <TextBlock Grid.Column="4" Text="Color" Style="{StaticResource TextBlockBoldStyle}"/>
                                         <TextBlock Grid.Column="5" Text="Notes" Style="{StaticResource TextBlockBoldStyle}"/>
+                                        <TextBlock Grid.Column="6" Text="Filter" Style="{StaticResource TextBlockBoldStyle}"/>
+                                        
                                     </Grid>
                                 </TreeViewItem.Header>
                             </TreeViewItem>
@@ -446,11 +458,13 @@
                                                 <ColumnDefinition SharedSizeGroup="Area"/>
                                                 <ColumnDefinition SharedSizeGroup="Color"/>
                                                 <ColumnDefinition SharedSizeGroup="Notes"/>
+                                                <ColumnDefinition SharedSizeGroup="ColorGroup"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="{Binding Name}" Style="{StaticResource TextBlockStyle}"/>
                                             <TextBlock Grid.Column="3" Text="{Binding Area}" Style="{StaticResource TextBlockStyle}"/>
                                             <TextBlock Grid.Column="4" Text="   " Background="{Binding Background}" Style="{StaticResource TextBlockStyle}"/>
                                             <TextBlock Grid.Column="5" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
+                                            <TextBlock Grid.Column="6" Text="{Binding DisplayColorGroupName}" Style="{StaticResource TextBlockStyle}"/>
                                         </Grid>
 
                                         <!-- Level 1 template leaves space for 1 child "Toggle" level -->
@@ -464,11 +478,13 @@
                                                         <ColumnDefinition SharedSizeGroup="Area"/>
                                                         <ColumnDefinition SharedSizeGroup="Color"/>
                                                         <ColumnDefinition SharedSizeGroup="Notes"/>
+                                                        <ColumnDefinition SharedSizeGroup="ColorGroup"/>
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Grid.Column="0" Text="{Binding Name}" Style="{StaticResource TextBlockStyle}"/>
                                                     <TextBlock Grid.Column="3" Text="{Binding Area}" Style="{StaticResource TextBlockStyle}"/>
                                                     <TextBlock Grid.Column="4" Text="   " Background="{Binding Background}" Style="{StaticResource TextBlockStyle}"/>
                                                     <TextBlock Grid.Column="5" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
+                                                    <TextBlock Grid.Column="6" Text="{Binding DisplayColorGroupName}" Style="{StaticResource TextBlockStyle}"/>
                                                 </Grid>
                                             </HierarchicalDataTemplate>
                                         </HierarchicalDataTemplate.ItemTemplate>
@@ -517,6 +533,7 @@
                                             <ColumnDefinition SharedSizeGroup="Area"/>
                                             <ColumnDefinition SharedSizeGroup="Color"/>
                                             <ColumnDefinition SharedSizeGroup="Notes" Width="*"/>
+                                            <ColumnDefinition SharedSizeGroup="ColorGroup" Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="Name" Style="{StaticResource TextBlockBoldStyle}"/>
                                         <!-- Empty TreeViewItem to measure the size of its ToggleButton into the "Toggle" group-->
@@ -524,6 +541,7 @@
                                         <TextBlock Grid.Column="4" Text="Area" Style="{StaticResource TextBlockBoldStyle}"/>
                                         <TextBlock Grid.Column="5" Text="Color" Style="{StaticResource TextBlockBoldStyle}"/>
                                         <TextBlock Grid.Column="6" Text="Notes" Style="{StaticResource TextBlockBoldStyle}"/>
+                                        <TextBlock Grid.Column="7" Text="Filter" Style="{StaticResource TextBlockBoldStyle}"/>
                                     </Grid>
                                 </TreeViewItem.Header>
                             </TreeViewItem>
@@ -546,11 +564,13 @@
                                                 <ColumnDefinition SharedSizeGroup="Area"/>
                                                 <ColumnDefinition SharedSizeGroup="Color"/>
                                                 <ColumnDefinition SharedSizeGroup="Notes"/>
+                                                <ColumnDefinition SharedSizeGroup="ColorGroup"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="{Binding Name}" Style="{StaticResource TextBlockStyle}"/>
                                             <TextBlock Grid.Column="4" Text="{Binding Area}" Style="{StaticResource TextBlockStyle}"/>
                                             <TextBlock Grid.Column="5" Text="   " Background="{Binding Background}" Style="{StaticResource TextBlockStyle}"/>
                                             <TextBlock Grid.Column="6" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
+                                            <TextBlock Grid.Column="7" Text="{Binding DisplayColorGroupName}" Style="{StaticResource TextBlockStyle}"/>
                                         </Grid>
 
                                         <!-- Level 1 template leaves space for 2 child "Toggle" level -->
@@ -565,11 +585,13 @@
                                                         <ColumnDefinition SharedSizeGroup="Area"/>
                                                         <ColumnDefinition SharedSizeGroup="Color"/>
                                                         <ColumnDefinition SharedSizeGroup="Notes"/>
+                                                        <ColumnDefinition SharedSizeGroup="ColorGroup"/>
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Grid.Column="0" Text="{Binding Name}" Style="{StaticResource TextBlockStyle}"/>
                                                     <TextBlock Grid.Column="4" Text="{Binding Area}" Style="{StaticResource TextBlockStyle}"/>
                                                     <TextBlock Grid.Column="5" Text="   " Background="{Binding Background}" Style="{StaticResource TextBlockStyle}"/>
                                                     <TextBlock Grid.Column="6" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
+                                                    <TextBlock Grid.Column="7" Text="{Binding DisplayColorGroupName}" Style="{StaticResource TextBlockStyle}"/>
                                                 </Grid>
                                                 <!-- Level 2 template has no children -->
                                                 <HierarchicalDataTemplate.ItemTemplate>
@@ -584,11 +606,13 @@
                                                                 <ColumnDefinition SharedSizeGroup="Area"/>
                                                                 <ColumnDefinition SharedSizeGroup="Color"/>
                                                                 <ColumnDefinition SharedSizeGroup="Notes"/>
+                                                                <ColumnDefinition SharedSizeGroup="ColorGroup"/>
                                                             </Grid.ColumnDefinitions>
                                                             <TextBlock Grid.Column="0" Text="{Binding Name}" Style="{StaticResource TextBlockStyle}"/>
                                                             <TextBlock Grid.Column="4" Text="{Binding Area}" Style="{StaticResource TextBlockStyle}"/>
                                                             <TextBlock Grid.Column="5" Text="   " Background="{Binding Background}" Style="{StaticResource TextBlockStyle}"/>
                                                             <TextBlock Grid.Column="6" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
+                                                            <TextBlock Grid.Column="7" Text="{Binding DisplayColorGroupName}" Style="{StaticResource TextBlockStyle}"/>
                                                         </Grid>
                                                         <HierarchicalDataTemplate.ItemTemplate>
                                                             <HierarchicalDataTemplate ItemsSource="{Binding Children}">
@@ -601,11 +625,13 @@
                                                                         <ColumnDefinition SharedSizeGroup="Area"/>
                                                                         <ColumnDefinition SharedSizeGroup="Color"/>
                                                                         <ColumnDefinition SharedSizeGroup="Notes"/>
+                                                                        <ColumnDefinition SharedSizeGroup="ColorGroup"/>
                                                                     </Grid.ColumnDefinitions>
                                                                     <TextBlock Grid.Column="0" Text="{Binding Name}" Style="{StaticResource TextBlockStyle}"/>
                                                                     <TextBlock Grid.Column="4" Text="{Binding Area}" Style="{StaticResource TextBlockStyle}"/>
                                                                     <TextBlock Grid.Column="5" Text="   " Background="{Binding Background}" Style="{StaticResource TextBlockStyle}"/>
                                                                     <TextBlock Grid.Column="6" Text="{Binding Notes}" Style="{StaticResource TextBlockStyle}"/>
+                                                                    <TextBlock Grid.Column="7" Text="{Binding DisplayColorGroupName}" Style="{StaticResource TextBlockStyle}"/>
                                                                 </Grid>
                                                             </HierarchicalDataTemplate>
                                                         </HierarchicalDataTemplate.ItemTemplate>

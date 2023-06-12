@@ -127,11 +127,19 @@ namespace AstRevitTool.Views
                 {
                     FilterData filterData;
                     bool bExist = m_dictFilters.TryGetValue(filter.Name, out filterData);
-                    if (bExist)
+                    if (bExist && filterData.m_originalDataList.Count == 0)
                     {
                         deleteElemIds.Add(filter.Id);
 
-                        continue;
+                        try
+                        {
+                            doc.ActiveView.RemoveFilter(filter.Id);
+                        }
+                        catch
+                        {
+
+                        }
+                        //continue;
                     }
                     
                 }
@@ -144,10 +152,22 @@ namespace AstRevitTool.Views
                 foreach (KeyValuePair<String, FilterData> myFilter in m_dictFilters)
                 {
                     FilterData currentData = myFilter.Value;
+                    
                     if (currentData != null)
                     {
-                        currentData.originalData._color = Colors.Transparent;
-                        currentData.originalData.Background = new SolidColorBrush(currentData.originalData._color);
+                        if(currentData.m_originalDataList.Count == 0)
+                        {
+
+                        }
+                        //currentData.originalData._color = Colors.Transparent;
+                        //currentData.originalData.Background = new SolidColorBrush(currentData.originalData._color);
+                        //currentData.originalData.ColorGroup = currentData.originalData.Name;
+                        currentData.m_originalDataList.ForEach(data =>
+                        {
+                            data._color = Colors.Transparent;
+                            data.Background = new SolidColorBrush(data._color);
+                            data.ColorGroup = data.RuleName;
+                        });
                     }
                 }
                 
@@ -263,7 +283,9 @@ namespace AstRevitTool.Views
                 tr.Start("resume color");
                 foreach(ElementId element in collector)
                 {
-                    try { doc.ActiveView.SetFilterOverrides(element,ogs); }
+                    try { doc.ActiveView.SetFilterOverrides(element,ogs);
+                        doc.ActiveView.RemoveFilter(element);
+                    }
                     catch { continue; }
                     //doc.Delete(element.Id);
                 }
@@ -290,6 +312,7 @@ namespace AstRevitTool.Views
             ICollection<ElementId> deleteElemIds = new List<ElementId>();
             FilteredElementCollector collector = new FilteredElementCollector(doc);
             ICollection<Element> oldFilters = collector.OfClass(typeof(ParameterFilterElement)).ToElements();
+            ICollection<ElementId> CurrentFiltercollector = doc.ActiveView.GetFilters();
             Transaction tran = new Transaction(doc, "Update View Filter");
             tran.Start();
             try
@@ -299,10 +322,12 @@ namespace AstRevitTool.Views
                 {
                     FilterData filterData;
                     bool bExist = m_dictFilters.TryGetValue(filter.Name, out filterData);
-                    if (!bExist)
+                    if (!bExist) { continue; }
+                    if (filterData.m_originalDataList.Count == 0)
                     {
                         deleteElemIds.Add(filter.Id);
-                        
+                        m_dictFilters.Remove(filter.Name);
+
                         continue;
                     }
                     //
@@ -314,31 +339,67 @@ namespace AstRevitTool.Views
                     }
 
                     // Update filter rules for this filter
-                    IList<FilterRule> newRules = new List<FilterRule>();
+                    //IList<FilterRule> newRules = new List<FilterRule>();
+
+                    // Updated version: update nested filter rules
+                    IList<FilterRule[]> newNestedRules = new List<FilterRule[]>();
+                    foreach (var s in filterData.m_originalDataList)
+                    {
+                        if (s.Hierarchy == SourceDataCategory.ElementCategory || s.Hierarchy == SourceDataCategory.ElementMaterial)
+                        {
+                            continue;
+                        }
+                        else {
+                            var rules = FilterData.RetrieveFilterRulesFromData(s);
+                            newNestedRules.Add(rules);
+                        }
+                    }
+                    /*
                     foreach (FilterRuleBuilder ruleData in filterData.RuleData)
                     {
                         newRules.Add(ruleData.AsFilterRule());
-                    }
+                    }*/
 
-                    ElementFilter elemFilter = AstRevitTool.Core.FilterUtil.CreateElementORFilterFromFilterRules(newRules);
+                    //  old version
+                    //ElementFilter elemFilter = AstRevitTool.Core.FilterUtil.CreateElementORFilterFromFilterRules(newRules);
+                    
+                    // new version
+                    ElementFilter elemFilter = AstRevitTool.Core.FilterUtil.CreateNestedORFilterFromFilterRules(newNestedRules);
                     // Set this filter's list of rules.
                     filter.SetElementFilter(elemFilter);
-                    try
-                    {
-                        doc.ActiveView.RemoveFilter(filter.Id);
-                    }
-                    catch
-                    {
 
-                    }
+                    //Update the filter's color
+                    Autodesk.Revit.DB.Color rvtc;
+                    var clr = filterData.m_originalDataList.First().Color;
+                    rvtc = Util.RevitColorFromForm(clr);
+                    OverrideGraphicSettings ogs = new OverrideGraphicSettings();
+                    ogs.SetProjectionLineColor(rvtc);
+                    ogs.SetProjectionLineWeight(10);
+                    ogs.SetSurfaceForegroundPatternColor(rvtc);
+                    var patternCollector = new FilteredElementCollector(doc.ActiveView.Document);
+                    patternCollector.OfClass(typeof(Autodesk.Revit.DB.FillPatternElement));
+                    Autodesk.Revit.DB.FillPatternElement solidFill = patternCollector.ToElements().Cast<Autodesk.Revit.DB.FillPatternElement>().First(x => x.GetFillPattern().IsSolidFill);
+                    ogs.SetSurfaceForegroundPatternId(solidFill.Id);
+                    doc.ActiveView.SetFilterOverrides(filter.Id, ogs);
+
                     // Remember that we updated this filter so that we do not try to create it again below.
+
                     updatedFilters.Add(filter.Name,filter);
                 }
                 //
                 // 2. Delete some filters
-                //if (deleteElemIds.Count > 0)
-                //    doc.Delete(deleteElemIds);
-                //
+                
+                // 2.a Disable active filter
+
+                foreach (ElementId element in CurrentFiltercollector)
+                {
+                    if (deleteElemIds.Contains(element)) {
+                        doc.ActiveView.RemoveFilter(element);
+                    }
+                }
+
+                if (deleteElemIds.Count > 0)
+                    doc.Delete(deleteElemIds);
                 // 3. Create new filters(if have)
                 ICollection<Element> newFilters = new Collection<Element>();
                 foreach (KeyValuePair<String, FilterData> myFilter in m_dictFilters)
@@ -346,20 +407,37 @@ namespace AstRevitTool.Views
                     // If this filter was updated in the previous step, do nothing.
                     if (updatedFilters.Keys.Contains(myFilter.Key))
                     {
-                        newFilters.Add(updatedFilters[myFilter.Key]);
+                        //newFilters.Add(updatedFilters[myFilter.Key]);
                         continue;
                     }
 
-                    // Create a new filter.
+                    // Create a new filter. OLD VERSION
                     // Collect the FilterRules, create an ElementFilter representing the
                     // conjunction ("ANDing together") of the FilterRules, and use the ElementFilter
                     // to create a ParameterFilterElement
-                    IList<FilterRule> rules = new List<FilterRule>();
-                    foreach (FilterRuleBuilder ruleData in myFilter.Value.RuleData)
+                    //IList<FilterRule> rules = new List<FilterRule>();
+
+                    IList<FilterRule[]> nestedRules = new List<FilterRule[]>();
+                    /*foreach (FilterRuleBuilder ruleData in myFilter.Value.RuleData)
                     {
                         rules.Add(ruleData.AsFilterRule());
+                    }*/
+
+                    foreach(var data in myFilter.Value.m_originalDataList) {
+                        if (data.Hierarchy == SourceDataCategory.ElementCategory || data.Hierarchy == SourceDataCategory.ElementMaterial)
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            nestedRules.Add(FilterData.RetrieveFilterRulesFromData(data));
+                        }
                     }
-                    ElementFilter elemFilter = FilterUtil.CreateElementORFilterFromFilterRules(rules);
+
+                    //OLD VERSION OF FILTERS
+                    //ElementFilter elemFilter = FilterUtil.CreateElementORFilterFromFilterRules(rules);
+
+                    ElementFilter elemFilter = FilterUtil.CreateNestedORFilterFromFilterRules(nestedRules);
                     
                     // Check that the ElementFilter is valid for use by a ParameterFilterElement.
                     IList<ElementId> categoryIdList = myFilter.Value.GetCategoryIds();
@@ -385,7 +463,7 @@ namespace AstRevitTool.Views
                     string key = filter.Name;
                     FilterData currentData;
                     m_dictFilters.TryGetValue(key,out currentData);
-                    if (currentData == null)
+                    if (currentData == null || currentData.m_originalDataList.Count == 0)
                     {
                         continue;
                     }
@@ -398,15 +476,26 @@ namespace AstRevitTool.Views
                         byte[] rgb = Util.HexStringToColor(color);
                         if (currentData != null)
                         {
+                            if(currentData.m_originalDataList.Count > 0) { 
+
+                            }
+                            else
+                            {
+                                //currentData.originalData._color = System.Windows.Media.Color.FromRgb(rgb[0], rgb[1], rgb[2]);
+                                //currentData.originalData.Background = new SolidColorBrush(currentData.originalData._color);
+                            }
+                            /*
                             currentData.originalData._color = System.Windows.Media.Color.FromRgb(rgb[0], rgb[1], rgb[2]);
-                            currentData.originalData.Background = new SolidColorBrush(currentData.originalData._color);
+                            currentData.originalData.Background = new SolidColorBrush(currentData.originalData._color);*/
                         }
                         rvtColor = new Autodesk.Revit.DB.Color(rgb[0], rgb[1], rgb[2]);
                     }
                     else
                     {
-                        rvtColor = Util.RevitColorFromForm(currentData.originalData.Color);
-                        currentData.originalData.Background = new SolidColorBrush(currentData.originalData._color);
+                        var clr = currentData.m_originalDataList.First().Color;
+                        rvtColor = Util.RevitColorFromForm(clr);
+                        //rvtColor = Util.RevitColorFromForm(currentData.originalData.Color);
+                        //currentData.originalData.Background = new SolidColorBrush(currentData.originalData._color);
                     }
                     OverrideGraphicSettings ogs = new OverrideGraphicSettings();
                     ogs.SetProjectionLineColor(rvtColor);

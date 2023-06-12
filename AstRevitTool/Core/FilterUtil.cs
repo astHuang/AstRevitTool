@@ -199,6 +199,32 @@ namespace AstRevitTool.Core
             return elemFilter;
         } // CreateElementFilterFromFilterRules
 
+        public static ElementFilter CreateNestedORFilterFromFilterRules(IList<FilterRule[]> filterRules)
+        {
+            // KEEP THIS FUNCTION SYNCHRONIZED WITH GetConjunctionOfFilterRulesFromElementFilter!!!
+
+            // We use a LogicalAndFilter containing one ElementParameterFilter
+            // for each FilterRule. We could alternatively create a single
+            // ElementParameterFilter containing the entire list of FilterRules.
+            IList<ElementFilter> elemFilters = new List<ElementFilter>();
+            foreach (FilterRule[] ruleSet in filterRules)
+            {
+                if (ruleSet.Length == 1)
+                {
+                    FilterRule rule = ruleSet[0];
+                    ElementParameterFilter elemParamFilter = new ElementParameterFilter(rule);
+                    elemFilters.Add(elemParamFilter);
+                }
+                else
+                {
+                    ElementFilter familyFilter = CreateElementFilterFromFilterRules(ruleSet);
+                    elemFilters.Add(familyFilter);
+                }
+            }
+            LogicalOrFilter elemFilter = new LogicalOrFilter(elemFilters);
+
+            return elemFilter;
+        } // CreateElementFilterFromFilterRules
 
         /// <summary>
         /// Given an ElementFilter representing a conjunction of FilterRules, return the list of FilterRules.

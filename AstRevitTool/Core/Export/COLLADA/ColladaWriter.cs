@@ -7,6 +7,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Windows.Baml2006;
 
 namespace AstRevitTool.Core.Export
 {
@@ -65,7 +66,14 @@ namespace AstRevitTool.Core.Export
             this.streamWriter.Write("       <authoring_tool>Revit To Cumulus bridge by Arrowstreet" + "</authoring_tool>\n");
             this.streamWriter.Write("   </contributor>\n");
             this.streamWriter.Write("   <created>" + DateTime.Now.ToString((IFormatProvider)CultureInfo.InvariantCulture) + "</created>\n");
-            this.streamWriter.Write("   <unit name=\"meter\" meter=\"1.00\"/>\n");
+            if (this.exportingOptions.UseCentimeter)
+            {
+                this.streamWriter.Write("   <unit name=\"centimeter\" meter=\"0.01\"/>\n");
+            }
+            else
+            {
+                this.streamWriter.Write("   <unit name=\"meter\" meter=\"1.00\"/>\n");
+            }
             this.streamWriter.Write("   <up_axis>Z_UP</up_axis>\n");
             this.streamWriter.Write("</asset>\n");
         }
@@ -228,16 +236,23 @@ namespace AstRevitTool.Core.Export
         private void WriteXmlLibraryImages()
         {
             this.streamWriter.Write("<library_images>\n");
-            foreach (string str in this.usedMaterials.Select<MaterialInfo, string>((Func<MaterialInfo, string>)(o => o.ColorTexture.Path)).Distinct<string>())
+            if (!this.exportingOptions.CollectTextures)
             {
-                if (!(str == ""))
-                {
-                    this.streamWriter.Write("   <image id=\"image-" + str.GetHashCode().ToString("X") + "\">\n");
-                    this.streamWriter.Write("       <init_from>" + this.EncodeAnyURI(str) + "</init_from>\n");
-                    this.streamWriter.Write("   </image>\n");
-                }
+                this.streamWriter.Write("</library_images>\n");
             }
-            this.streamWriter.Write("</library_images>\n");
+            else
+            {
+                foreach (string str in this.usedMaterials.Select<MaterialInfo, string>((Func<MaterialInfo, string>)(o => o.ColorTexture.Path)).Distinct<string>())
+                {
+                    if (!(str == ""))
+                    {
+                        this.streamWriter.Write("   <image id=\"image-" + str.GetHashCode().ToString("X") + "\">\n");
+                        this.streamWriter.Write("       <init_from>" + this.EncodeAnyURI(str) + "</init_from>\n");
+                        this.streamWriter.Write("   </image>\n");
+                    }
+                }
+                this.streamWriter.Write("</library_images>\n");
+            }
         }
 
         private void WriteXmlLibraryMaterials()
@@ -266,7 +281,7 @@ namespace AstRevitTool.Core.Export
                 string str1 = "";
                 this.streamWriter.Write("   <effect id=\"effect-" + materialSid + "\" name=\"" + name + "\">\n");
                 this.streamWriter.Write("       <profile_COMMON>\n");
-                if (usedMaterial.ColorTexture.Path.Length > 0)
+                if (this.exportingOptions.CollectTextures && usedMaterial.ColorTexture.Path.Length > 0)
                 {
                     str1 = usedMaterial.ColorTexture.Path.GetHashCode().ToString("X");
                     this.streamWriter.Write(" <newparam sid=\"surface-" + str1 + "\">\n");
@@ -287,17 +302,25 @@ namespace AstRevitTool.Core.Export
                 this.streamWriter.Write("                       <color>0.01 0.01 0.01 1.0</color>\n");
                 this.streamWriter.Write("                   </ambient>\n");
                 this.streamWriter.Write("                   <diffuse>\n");
-                if (usedMaterial.ColorTexture.Path.Length > 0)
+                if (this.exportingOptions.CollectTextures && usedMaterial.ColorTexture.Path.Length > 0)
                 {
                     this.streamWriter.Write("                       <texture texture=\"sampler2d-" + str1 + "\" texcoord=\"CHANNEL0\"/>\n");
                 }
                 else
                 {
+                    
                     System.Drawing.Color color = System.Drawing.Color.FromArgb(usedMaterial.Color);
                     float num1 = (float)color.R / (float)byte.MaxValue;
                     float num2 = (float)color.G / (float)byte.MaxValue;
                     float num3 = (float)color.B / (float)byte.MaxValue;
                     float num4 = 1f - usedMaterial.Transparency;
+                    num4 = num4 * num4;//enhance transparency if exists
+                    if (this.exportingOptions.BlackAndWhite) {
+                        float bw = ((num1 + num2 + num3) * (float)0.49);//prefer brighter color than darker in BW mode
+                        num1 = bw < 0.98 ? bw : (float)0.98;
+                        num2 = bw < 0.98 ? bw : (float)0.98;
+                        num3 = bw < 0.98 ? bw : (float)0.98;
+                    }
                     this.streamWriter.Write("                       <color>" + Convert.ToString(num1, (IFormatProvider)CultureInfo.InvariantCulture.NumberFormat) + " " + Convert.ToString(num2, (IFormatProvider)CultureInfo.InvariantCulture.NumberFormat) + " " + Convert.ToString(num3, (IFormatProvider)CultureInfo.InvariantCulture.NumberFormat) + " " + Convert.ToString(num4, (IFormatProvider)CultureInfo.InvariantCulture.NumberFormat) + "</color>\n");
                 }
                 this.streamWriter.Write("                   </diffuse>\n");

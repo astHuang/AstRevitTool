@@ -14,6 +14,7 @@ using Autodesk.Revit.UI;
 using Autodesk.Revit.DB.Architecture;
 using PFRF = Autodesk.Revit.DB.ParameterFilterRuleFactory;
 using AstRevitTool.Views;
+using System.Web.UI.WebControls;
 
 namespace AstRevitTool.Core
 {
@@ -268,6 +269,8 @@ namespace AstRevitTool.Core
         /// </summary>
         List<FilterRuleBuilder> m_filterRules;
         public SourceDataTypes originalData { get; set; }
+
+        public List<SourceDataTypes> m_originalDataList { get; set; }
         #endregion
 
         #region Public Class Methods
@@ -288,6 +291,95 @@ namespace AstRevitTool.Core
             foreach (BuiltInCategory cat in m_filterCategories)
                 catIds.Add(new ElementId(cat));
             return catIds;
+        }
+
+        public static FilterRule[] RetrieveFilterRulesFromData(SourceDataTypes data)
+        {
+
+            //Basic operation in 'By-Category'
+            if(data.RuleName != null)
+            {
+                if(data.Family != null)
+                {
+                    FilterRule[] rules = new FilterRule[2];
+                    FilterRuleBuilder familyRule = new FilterRuleBuilder(BuiltInParameter.ALL_MODEL_FAMILY_NAME, RuleCriteraNames.Equals_, data.FamilyName);
+                    rules[0] = familyRule.AsFilterRule();
+                    FilterRuleBuilder typeRule = new FilterRuleBuilder(BuiltInParameter.ALL_MODEL_TYPE_NAME, RuleCriteraNames.Equals_, data.RuleName);
+                    rules[1] = typeRule.AsFilterRule();
+                    return rules;
+                }
+                else
+                {
+                    FilterRule[] rules = new FilterRule[1];
+                    FilterRuleBuilder typeRule = new FilterRuleBuilder(BuiltInParameter.ALL_MODEL_TYPE_NAME, RuleCriteraNames.Equals_, data.RuleName);
+                    rules[0] = typeRule.AsFilterRule();
+                    return rules;
+                }
+            }
+
+            if(data.Children == null || data.Children.Count == 0)
+            {
+                FilterRule[] rules = new FilterRule[0];
+                return rules;
+            }
+
+            else
+            {
+                throw new Exception("Can't retrieve rules of hierarchy in Category or Material level");
+            }
+        }
+
+        public void AddDataElement(SourceDataTypes data)
+        {
+           
+            if (data.RuleName != null)
+            {
+                BuiltInParameter curParam = BuiltInParameter.ALL_MODEL_TYPE_NAME;
+                this.m_originalDataList.RemoveAll(S => S.Name == data.Name);
+                this.RuleData.RemoveAll(rule => rule.RuleValue == data.RuleName);
+
+                FilterRuleBuilder newRule = new FilterRuleBuilder(curParam, RuleCriteraNames.Equals_, data.RuleName);
+                this.m_originalDataList.Add(data);
+                this.RuleData.Add(newRule);
+                return;
+            }
+            if (data.Children == null || data.Children.Count == 0)
+            {
+                return;
+            }
+
+            //Recursively add element data and rules: For category and material 
+            else
+            {
+                this.m_originalDataList.RemoveAll(s => s.Name == data.Name);
+                this.m_originalDataList.Add(data);
+
+                foreach (SourceDataTypes child in data.Children)
+                {
+                    AddDataElement(child);
+                }
+            }
+        }
+
+        public void RemoveDataElement(SourceDataTypes data)
+        {
+            if (data.RuleName != null)
+            {
+                this.m_originalDataList.RemoveAll(S => S.Name == data.Name);
+                //this.RuleData.RemoveAll(rule => rule.RuleValue == data.RuleName);
+                return;
+            }
+            if (data.Children == null || data.Children.Count == 0)
+            {
+                return;
+            }
+            else
+            {
+                foreach(SourceDataTypes child in data.Children)
+                {
+                    RemoveDataElement(child);
+                }
+            }
         }
 
         /// <summary>
@@ -346,6 +438,7 @@ namespace AstRevitTool.Core
             ICollection<BuiltInCategory> categories, ICollection<FilterRuleBuilder> filterRules)
         {
             m_doc = doc;
+            m_originalDataList = new List<SourceDataTypes>();
             m_filterCategories = new List<BuiltInCategory>();
             m_filterCategories.AddRange(categories);
             m_filterRules = new List<FilterRuleBuilder>();
@@ -368,6 +461,8 @@ namespace AstRevitTool.Core
             m_filterRules = new List<FilterRuleBuilder>();
             m_filterRules.AddRange(filterRules);
         }
+
+        
         #endregion
     }
 
