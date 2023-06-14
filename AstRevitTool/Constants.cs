@@ -13,11 +13,14 @@ namespace AstRevitTool
    
         internal static string emailSupport => "marketing@arrowstreet.com";
 
-        internal static string LeasingParameter = "Leasing Classification";
+        internal const string LeasingParameter = "Leasing Classification";
 
-        internal static string ProgrammingParameter = "Program Group";
+        internal const string ProgrammingParameter = "Program Group";
 
         internal const string BOMA = "BOMA Space Classification";
+
+        internal const string GenslerRoomKey = "Room Building Use (Key)";
+        internal const string GenslerAreaKey = "Area Building Use (Key)";
 
         internal const string EXCLUSION = "BOMA Rentable Exclusion";
         //internal const string SCRIPT_FOLDER = "W:\\5X\\50113_Data_Science\\04_InternalTools\\02-ASTRevitTool";

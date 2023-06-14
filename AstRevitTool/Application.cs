@@ -162,7 +162,7 @@ namespace AstRevitTool
             var areaBtn = item4 as PulldownButton;
             areaBtn.SetImage(icon_area);
             areaBtn.SetLargeImage(icon_area_large);
-            //areaBtn.AddPushButton(typeof(CmdCustomAreaScheduleExport), "Export Area Scheme");
+            areaBtn.AddPushButton(typeof(CmdCustomAreaScheduleExport), "Export Area Scheme");
             areaBtn.AddPushButton(typeof(CmdRoomSchedule), "Room manager");
             var plan = areaBtn.AddPushButton<CmdAreaPlan>("AreaPlan helper");
             plan.ToolTip = "Help build an area plan from rooms";
