@@ -155,6 +155,7 @@ namespace AstRevitTool.Views
                 return;
             }
             this._area = this.Children.Sum(x => x.Area);
+            this.Area = this._area;
         }
 
         public void updateBIC()

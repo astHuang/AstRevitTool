@@ -46,7 +46,7 @@ namespace AstRevitTool.Core.UnitMatrix
         /// Constant name for shared parameter, 
         /// the mapped room id of spread sheet will saved in this parameter.
         /// </summary>
-        public const String SharedParam = "External Room ID";
+        public const String SharedParam = Constants.GenslerRoomKey;
         #endregion
 
 
@@ -183,7 +183,7 @@ namespace AstRevitTool.Core.UnitMatrix
 
             // add a second constant column: Calibrated Room Area
             DataColumn constantCol2 = new DataColumn();
-            constantCol2.ColumnName = "Adjusted Room Area";
+            constantCol2.ColumnName = "Assigned Area";
             constantCol2.ReadOnly = true;
             constantCol2.DataType = System.Type.GetType("System.String");
             newTable.Columns.Add(constantCol2);

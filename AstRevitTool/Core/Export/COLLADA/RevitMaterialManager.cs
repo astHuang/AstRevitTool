@@ -626,7 +626,7 @@ namespace AstRevitTool.Core.Export
 #if R20
             output = (float)UnitUtils.ConvertToInternalUnits(propertyDistance.Value, propertyDistance.DisplayUnitType);
 
-#elif R22
+#else
             output = (float)UnitUtils.ConvertToInternalUnits(propertyDistance.Value, propertyDistance.GetUnitTypeId());
 #endif
 

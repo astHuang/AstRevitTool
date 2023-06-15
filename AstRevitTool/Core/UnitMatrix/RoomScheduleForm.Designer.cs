@@ -61,6 +61,8 @@ namespace AstRevitTool.Core.UnitMatrix
             this.showAllRoomsCheckBox = new System.Windows.Forms.CheckBox();
             this.closeButton = new System.Windows.Forms.Button();
             this.button3 = new System.Windows.Forms.Button();
+            this.comboBox1 = new System.Windows.Forms.ComboBox();
+            this.label1 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.revitRoomDataGridView)).BeginInit();
             this.roomsGroupBox.SuspendLayout();
             this.SuspendLayout();
@@ -68,7 +70,7 @@ namespace AstRevitTool.Core.UnitMatrix
             // levelLabel
             // 
             this.levelLabel.AutoSize = true;
-            this.levelLabel.Location = new System.Drawing.Point(52, 23);
+            this.levelLabel.Location = new System.Drawing.Point(65, 20);
             this.levelLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.levelLabel.Name = "levelLabel";
             this.levelLabel.Size = new System.Drawing.Size(40, 16);
@@ -94,7 +96,7 @@ namespace AstRevitTool.Core.UnitMatrix
             // 
             this.levelComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.levelComboBox.FormattingEnabled = true;
-            this.levelComboBox.Location = new System.Drawing.Point(104, 20);
+            this.levelComboBox.Location = new System.Drawing.Point(113, 17);
             this.levelComboBox.Margin = new System.Windows.Forms.Padding(4);
             this.levelComboBox.Name = "levelComboBox";
             this.levelComboBox.Size = new System.Drawing.Size(158, 24);
@@ -104,6 +106,8 @@ namespace AstRevitTool.Core.UnitMatrix
             // 
             // roomsGroupBox
             // 
+            this.roomsGroupBox.Controls.Add(this.label1);
+            this.roomsGroupBox.Controls.Add(this.comboBox1);
             this.roomsGroupBox.Controls.Add(this.button2);
             this.roomsGroupBox.Controls.Add(this.button1);
             this.roomsGroupBox.Controls.Add(this.showAllRoomsCheckBox);
@@ -144,7 +148,7 @@ namespace AstRevitTool.Core.UnitMatrix
             // showAllRoomsCheckBox
             // 
             this.showAllRoomsCheckBox.AutoSize = true;
-            this.showAllRoomsCheckBox.Location = new System.Drawing.Point(279, 24);
+            this.showAllRoomsCheckBox.Location = new System.Drawing.Point(279, 19);
             this.showAllRoomsCheckBox.Margin = new System.Windows.Forms.Padding(4);
             this.showAllRoomsCheckBox.Name = "showAllRoomsCheckBox";
             this.showAllRoomsCheckBox.Size = new System.Drawing.Size(127, 20);
@@ -175,6 +179,28 @@ namespace AstRevitTool.Core.UnitMatrix
             this.button3.Text = "&Export";
             this.button3.UseVisualStyleBackColor = true;
             this.button3.Click += new System.EventHandler(this.button3_Click);
+            // 
+            // comboBox1
+            // 
+            this.comboBox1.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBox1.FormattingEnabled = true;
+            this.comboBox1.Location = new System.Drawing.Point(508, 17);
+            this.comboBox1.Margin = new System.Windows.Forms.Padding(4);
+            this.comboBox1.Name = "comboBox1";
+            this.comboBox1.Size = new System.Drawing.Size(158, 24);
+            this.comboBox1.Sorted = true;
+            this.comboBox1.TabIndex = 6;
+            this.comboBox1.SelectedIndexChanged += new System.EventHandler(this.comboBox1_SelectedIndexChanged);
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(414, 20);
+            this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(86, 16);
+            this.label1.TabIndex = 7;
+            this.label1.Text = "AreaScheme";
             // 
             // RoomScheduleForm
             // 
@@ -211,6 +237,8 @@ namespace AstRevitTool.Core.UnitMatrix
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.Button button2;
         private System.Windows.Forms.Button button3;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.ComboBox comboBox1;
     }
 }
 

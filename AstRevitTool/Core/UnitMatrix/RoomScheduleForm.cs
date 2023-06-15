@@ -60,6 +60,8 @@ namespace AstRevitTool.Core.UnitMatrix
         // All levels in Revit document.
         private List<Level> m_allLevels = new List<Level>();
 
+        private List<AreaScheme> m_areaSchemes = new List<AreaScheme>();
+
         // All available phases in Revit document.
         private List<Phase> m_allPhases = new List<Phase>();
 
@@ -94,6 +96,10 @@ namespace AstRevitTool.Core.UnitMatrix
             this.levelComboBox.DataSource = m_allLevels;
             this.levelComboBox.SelectedIndex = 0;
 
+            this.comboBox1.DisplayMember = "Name";
+            this.comboBox1.DataSource = m_areaSchemes;
+            this.comboBox1.SelectedIndex = 0;
+
             //this.phaseComboBox.DisplayMember = "Name";
             //this.phaseComboBox.DataSource = m_allPhases;
             //this.phaseComboBox.SelectedIndex = 0;
@@ -121,7 +127,19 @@ namespace AstRevitTool.Core.UnitMatrix
                 m_allLevels.Add(planTopology.Level);
             }
 
-            // get all phases by filter type
+            FilteredElementCollector collector1 = new FilteredElementCollector(m_document);
+            ICollection<Element> areaSchemes = collector1.OfClass(typeof(AreaScheme)).ToElements();
+
+            foreach (Element areaScheme in areaSchemes)
+            {
+                AreaScheme scheme = areaScheme as AreaScheme;
+                if (scheme != null)
+                {
+                    m_areaSchemes.Add(scheme);
+                }
+            }
+
+                // get all phases by filter type
             FilteredElementCollector collector = new FilteredElementCollector(m_document);
             ICollection<Element> allPhases = collector.OfClass(typeof(Phase)).ToElements();
             foreach (Phase phs in allPhases)
@@ -855,8 +873,9 @@ namespace AstRevitTool.Core.UnitMatrix
                 string txtpath = datafolder + "\\" + txtname;
                 string mode = "UNITMATRIX";
                 File.WriteAllText(txtpath, sb.ToString());
-                string output = "Unit data exported! Now running script to generate Excel table...";
+                string output = "Unit data exported! ";
                 MessageBox.Show(output);
+                /*
                 Util.runPython(appfolder, txtname, saveFileDialog.FileName, title, mode);
                 string logpath = appfolder + "\\RESULT_FLAG.txt";
                 if (File.ReadAllText(logpath) == "TRUE")
@@ -868,8 +887,31 @@ namespace AstRevitTool.Core.UnitMatrix
                 {
                     string finaloutput = "THERE ARE SOME PROBLEMS WHEN PROCESSING THE EXCEL SHEET!";
                     MessageBox.Show(finaloutput);
+                }*/
+            }
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            // get the selected level, by comparing its name and ComboBox selected item's name
+            AreaScheme selAS = null;
+            foreach (AreaScheme a in m_areaSchemes)
+            {
+                if (0 == String.Compare(a.Name, comboBox1.Text))
+                {
+                    selAS = a;
+                    break;
                 }
             }
+            if (selAS == null)
+            {
+                MyMessageBox("There is no available Area Scheme in the model.", MessageBoxIcon.Warning);
+                return;
+            }
+
+            // update data source of DataGridView
+            //this.revitRoomDataGridView.DataSource = null;
+            //this.revitRoomDataGridView.DataSource = new DataView(m_roomData.GenRoomsDataTable(selLevel));
         }
     }
 }

@@ -123,6 +123,7 @@ namespace AstRevitTool.Views
             
             
             Model.Hide(selectedData);
+            
      
 
             DataContext = Model;

@@ -63,16 +63,15 @@ namespace AstRevitTool.Views
         }
 
         public List<string> SpandrelMaterialsKeyword = new List<string>();
-        public ObservableCollection<SourceDataTypes> DataDetails { get { return _dataDetails; } }
-        public ObservableCollection<SourceDataTypes> DataByMaterial { get { return _dataByMaterial; } }
+        public ObservableCollection<SourceDataTypes> DataDetails { get { return _dataDetails; } set { } }
+        public ObservableCollection<SourceDataTypes> DataByMaterial { get { return _dataByMaterial; } set { } }
 
-        public ObservableCollection<SourceDataTypes> DataByTransparency { get { return _dataByTransparency; } }
+        public ObservableCollection<SourceDataTypes> DataByTransparency { get { return _dataByTransparency; } set { } }
 
-        public ObservableCollection<SourceDataTypes> HiddenItems { get { return _hiddenDetails; } }
+        public ObservableCollection<SourceDataTypes> HiddenItems { get { return _hiddenDetails; } set { } }
 
         public bool CheckContain(SourceDataTypes target, IEnumerable<SourceDataTypes> source)
         {
-            //TODO: Recursively check if a target data exist in a list of source data
             foreach(SourceDataTypes data in source)
             {
                 if(data.Children==null || data.Children.Count == 0)
@@ -94,6 +93,7 @@ namespace AstRevitTool.Views
                 if (data.Equals(toRemove))
                 {
                     source.Remove(data);
+                    
                     return;
                 }
                 else
@@ -251,7 +251,7 @@ namespace AstRevitTool.Views
                         {
                             if (FName.Contains("Storefront"))
                             {
-                                //TODO
+                                
                             }
                             door_transom.Children.Add(doorType);
                         }
@@ -472,10 +472,23 @@ namespace AstRevitTool.Views
             foreach (SourceDataTypes data in sel)
             {
                 Remove(data, this._dataDetails);
+                /*if (data.Parent != null)
+                {
+                    data.Parent.updateArea();
+                }*/
                 this._hiddenDetails.Add(data);
             }
-            this._dataByTransparency = this.ConvertData(this._dataDetails);
-
+            foreach(SourceDataTypes data in this._dataDetails)
+            {
+                data.updateArea();
+            }
+            this._dataByTransparency.Clear();
+            foreach(var data in this.ConvertData(this._dataDetails))
+            {
+                this._dataByTransparency.Add(data);
+            }
+            //this._dataByTransparency.
+            //this.DataByTransparency = this._dataByTransparency;
             Application.ASTRequestHandler.Arg1 = sel;
             Application.ASTRequestHandler.Request = RequestId.Hide;
             Application.ASTEvent.Raise();
@@ -489,8 +502,16 @@ namespace AstRevitTool.Views
                 InsertBack(data, this._dataDetails);
             }
             this._hiddenDetails.Clear();
-            
-            this._dataByTransparency = this.ConvertData(this._dataDetails);
+            foreach (SourceDataTypes data in this._dataDetails)
+            {
+                data.updateArea();
+            }
+
+            this._dataByTransparency.Clear();
+            foreach (var data in this.ConvertData(this._dataDetails))
+            {
+                this._dataByTransparency.Add(data);
+            }
             Application.ASTRequestHandler.Arg1 = hidden;
             Application.ASTRequestHandler.Request = RequestId.Unhide;
             Application.ASTEvent.Raise();

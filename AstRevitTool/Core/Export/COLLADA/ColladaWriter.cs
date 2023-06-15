@@ -117,7 +117,6 @@ namespace AstRevitTool.Core.Export
 
         private void WriteXmlLibraryGeometries()
         {
-            //TODO: Geometry extraction from Revit
             this.WriteXmlLibraryGeometriesBegin();
             foreach (KeyValuePair<ulong, MeshInfo> materialIdToMergedMesh in this.materialIdToMergedMeshes)
             {
